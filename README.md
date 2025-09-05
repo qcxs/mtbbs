@@ -1,5 +1,5 @@
 # mtbbs
-自用mt论坛脚本
+自用mt论坛（https://bbs.binmt.cc/）脚本，by qcxs
 
 简要介绍：
 ball.js（悬浮球）
@@ -21,3 +21,7 @@ pc_uploadImg.js
 
 qcxs_mtbbs.py
 用于青龙面板挂机与签到，编辑代码“OSAP="qcxs_mtbbs"”，其中“qcxs_mtbbs”为环境变量名，新建此环境变量，格式：账号&密码。在青龙面板添加定时任务执行。如若想挂多个账号，修改其中环境变量名+文件名即可。在当前目录下创建cache文件夹，存储cookie、签到日期，防止重复登录/签到。
+
+xhwTest.js
+详见：https://bbs.binmt.cc/thread-153883-1-1.html
+纯js版小黑屋，方便插入论坛app中，通过xhw()调用。
