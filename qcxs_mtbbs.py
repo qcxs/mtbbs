@@ -3,6 +3,7 @@ import re
 import os
 import time
 import json
+import random
 from datetime import datetime
 
 # 全局配置变量
@@ -27,7 +28,7 @@ def print_log(content):
 
 def init_cache():
     """初始化缓存：程序启动时读取一次"""
-    log = print_log("初始化缓存数据")
+    log = ""
     if os.path.exists(CACHE_FILE):
         try:
             with open(CACHE_FILE, 'r', encoding='utf-8') as f:
@@ -48,7 +49,7 @@ def init_cache():
 
 def save_cache(sign_date=None):
     """保存缓存：只更新内存中的数据并写入文件"""
-    log = print_log("保存缓存数据")
+    log = ""
     # 确保缓存目录存在
     os.makedirs(os.path.dirname(CACHE_FILE), exist_ok=True)
 
@@ -110,7 +111,7 @@ def verify_cookie_validity():
 
 def check_today_sign_status():
     """检查今日是否已完成签到"""
-    log = print_log("检查今日签到状态")
+    log = ""
 
     if cache_data['sign_date'] == TODAY_DATE:
         log += print_log("今日已签到")
@@ -240,12 +241,18 @@ def main():
         save_log = save_cache()
         main_log += save_log
     else:
-        main_log += print_log("Cookie有效")
+        main_log += print_log("跳过登录")
 
     # 4. 检查今日是否已签到
     has_signed, sign_check_log = check_today_sign_status()
     main_log += sign_check_log
     if has_signed:
+        return main_log
+
+    #20%的可能性进行签到，模拟随机签到。
+    random_num = random.randint(0, 99)
+    if random_num >= 20:
+        main_log += print_log("跳过此次签到")
         return main_log
 
     # 5. 延迟1秒执行签到操作
