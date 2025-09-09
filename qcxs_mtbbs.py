@@ -249,9 +249,9 @@ def main():
     if has_signed:
         return main_log
 
-    #20%的可能性进行签到，模拟随机签到。
+    #10%的可能性进行签到，模拟随机签到。
     random_num = random.randint(0, 99)
-    if random_num >= 20:
+    if random_num >= 10:
         main_log += print_log("跳过此次签到")
         return main_log
 
