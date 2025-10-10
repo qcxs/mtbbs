@@ -46,7 +46,7 @@ def init_request_session():
 def randomSkipSignInByHour():
     """随机函数，返回true概率逐渐增大"""
     h = datetime.now().hour
-    return random.random() > h / 12
+    return random.random() > h / 22
 
 
 def init_cache(username):
