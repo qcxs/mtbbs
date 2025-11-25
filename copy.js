@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         [MT论坛]“借鉴一下” by：青春向上
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  利用正则表达式将html解析为bbcode，可供论坛发帖时布局参考。
+// @version      2025-11-22
+// @description  利用正则表达式将html解析为bbcode，可供论坛发帖时布局参考。通过伪元素无侵入式添加代码复制功能。
 // @author       青春向上
 // @match        *://bbs.binmt.cc/forum.php?*tid=*
 // @match        *://bbs.binmt.cc/*thread-*.html*
@@ -79,14 +79,15 @@
                 span.style.marginLeft = '8px';
 
                 // 为span添加点击事件
-                span.addEventListener('click', () => {
+                span.addEventListener('click', async () => {
                     // 查找对应div中的内容元素
                     const contentElement = div.querySelector(selectContent);
 
                     if (contentElement) {
                         // 输出innerHTML到控制台
                         if (!isLoading) {
-                            getLatest(pid, contentElement.innerHTML);
+                            const content = await getLatest(pid, contentElement.innerHTML)
+                            previewDia(html2bbcode(content), null, 'ubb代码预览：');;
                         }
                     } else {
                         console.log(`未找到class为"${selectContent}"的元素`);
@@ -409,55 +410,64 @@
     }
 
     //优先使用最新数据解析，若帖子已被删除(404)或网络异常，再使用本地html解析，可以避免因修改本地html而造成解析数据有误
-    function getLatest(pid, html) {
-        isLoading = true
-        console.log(tid, pid)
-        // 发送请求
-        fetch(`https://bbs.binmt.cc/forum.php?mod=viewthread&tid=${tid}&viewpid=${pid}&mobile=2&inajax=1`, {
-            method: 'GET',
-            timeout: 3000
-        })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('网络请求失败');
-                }
-                return response.text(); // 先获取XML文本内容
-            })
-            .then(xmlText => {
-                // 解析XML文本
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-                // 处理可能的XML解析错误
-                if (xmlDoc.querySelector('parsererror')) {
-                    throw new Error('XML解析失败');
-                }
-                // 获取目标节点值
-                const root = xmlDoc.lastChild?.firstChild?.nodeValue;
-                if (typeof root === 'undefined' || root === null) {
-                    throw new Error('返回数据格式不支持，改为解析本地');
-                }
+    // 函数本身标记为 async
+    async function getLatest(pid, html) {
+        isLoading = true;
+        console.log(tid, pid);
 
-                //创建临时元素解析网页内容
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = root;
-                const contentElement = tempDiv.querySelector(selectContent);
-                tempDiv.remove();
-
-                const content = contentElement ? contentElement.innerHTML : '';
-
-                if (!content) {
-                    throw new Error(`返回数据为空，改为解析本地`);
-                }
-
-                previewDia(html2bbcode(content), null, 'ubb代码预览：');
-            })
-            .catch((e) => {
-                console.log(e.message)
-                previewDia(html2bbcode(html), null, 'ubb代码预览：');
-            })
-            .finally(() => {
-                isLoading = false;
+        try {
+            // 使用 await 等待 fetch 请求完成
+            const response = await fetch(`https://bbs.binmt.cc/forum.php?mod=viewthread&tid=${tid}&viewpid=${pid}&mobile=2&inajax=1`, {
+                method: 'GET',
+                timeout: 3000
             });
+
+            if (!response.ok) {
+                // 如果 HTTP 错误，抛出异常，会被 catch 捕获
+                throw new Error('网络请求失败');
+            }
+
+            // 使用 await 等待文本内容解析
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+
+            //处理可能的XML解析错误
+            if (xmlDoc.querySelector('parsererror')) {
+                throw new Error('XML解析失败');
+            }
+
+            //获取目标节点值
+            const root = xmlDoc.lastChild?.firstChild?.nodeValue;
+            if (typeof root === 'undefined' || root === null) {
+                throw new Error('返回数据格式不支持，改为解析本地');
+            }
+
+            //创建临时元素解析网页内容
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = root;
+            const contentElement = tempDiv.querySelector(selectContent);
+            tempDiv.remove();
+
+            const content = contentElement ? contentElement.innerHTML : '';
+
+            if (!content) {
+                throw new Error(`返回数据为空，改为解析本地`);
+            }
+
+            // 成功时，返回 content
+            return content;
+
+        } catch (e) {
+            // 捕获所有前面抛出的异常或网络错误
+            console.log(e.message);
+            // 失败时，返回备用的 html
+            return html;
+
+        } finally {
+            // 无论成功失败，最后都执行
+            isLoading = false;
+        }
     }
 
     //预览对话框
