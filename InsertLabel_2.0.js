@@ -212,6 +212,7 @@ function initImgMenu() {
                 selectDia([
                     //选项名、插入内容、预览样式(css)
                     { name: '取色器', value: `取色器` },
+                    { name: `url`, value: `[${text}=#507daf]${selectedText}[/${text}]`, css: `${textText}: #507daf;` },
                     { name: `black`, value: `[${text}=black]${selectedText}[/${text}]`, css: `${textText}: black;` },
                     { name: `white`, value: `[${text}=white]${selectedText}[/${text}]`, css: `${textText}: white;` },
                     { name: `red`, value: `[${text}=red]${selectedText}[/${text}]`, css: `${textText}: red;` },
