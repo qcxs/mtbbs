@@ -1,15 +1,19 @@
 // ==UserScript==
 // @name         [MT论坛]发帖辅助工具 by：青春向上
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/qcxs/mtbbs
 // @version      2025-12-07
 // @description  寻找网页中textarea，为其添加菜单，核心功能插入标签和预览，另配有辅助工具。
 // @author       青春向上
-// @match        *://bbs.binmt.cc/*
+// @match        *://bbs.binmt.cc/forum.php?*tid=*
+// @match        *://bbs.binmt.cc/*thread-*.html*
+// @match        *://bbs.binmt.cc/forum.php?*mod=post*
+// @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
 // ==/UserScript==
 
 (function () {
     'use strict';
+    // 仅适配发帖页面
     const textarea = document.querySelector('textarea');
     if (!textarea) {
         console.log('未找到textarea元素');

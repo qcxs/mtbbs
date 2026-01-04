@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         [MT论坛]“借鉴一下” by：青春向上
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/qcxs/mtbbs
 // @version      2025-11-22
 // @description  利用正则表达式将html解析为bbcode，可供论坛发帖时布局参考。通过伪元素无侵入式添加代码复制功能。
 // @author       青春向上
 // @match        *://bbs.binmt.cc/forum.php?*tid=*
 // @match        *://bbs.binmt.cc/*thread-*.html*
+// @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
 // ==/UserScript==
 

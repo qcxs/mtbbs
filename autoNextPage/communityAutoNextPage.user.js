@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         [MT论坛]自动下一页 by：青春向上
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/qcxs/mtbbs
 // @version      2025-11-22
 // @description  集众多页面为一体，统一使用page参数控制分页。滚动加载下一页，手动加载上一页，页码跳转，地址栏无刷新更新。已适配：社区、导读、搜索、个人空间帖子/回复/留言、帖子评论、我的好友、积分明细、消息提醒。
 // @author       青春向上
@@ -12,6 +12,7 @@
 // @match        *://bbs.binmt.cc/forum.php?*tid=*
 // @match        *://bbs.binmt.cc/*thread-*.html*
 // @match        *://bbs.binmt.cc/home.php?*do=friend*
+// @match        *://bbs.binmt.cc/home.php?*do=favorite*
 // @match        *://bbs.binmt.cc/home.php?*do=following*
 // @match        *://bbs.binmt.cc/home.php?*do=follower*
 // @match        *://bbs.binmt.cc/home.php?*do=wall*
@@ -21,6 +22,7 @@
 // @match        *://bbs.binmt.cc/home.php?*ac=friend*
 // @match        *://bbs.binmt.cc/home.php?*ac=credit*
 // @match        *://bbs.binmt.cc/home.php?*view=blacklist*
+// @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
@@ -40,6 +42,8 @@
         integralListSelector: '.comiis_credits_log>ul',
         //通知列表
         noticeSelector: '.comiis_notice_list>ul',
+        //我的收藏
+        favoriteSelector: '.comiis_mysclist>ul',
         //当无法从页码选择器中获取总页码时，取最大，会自动根据响应数据判断是否还有下一页
         unknownPage: 999,
         //距离页面底部多少时，加载下一页，单位：像素
@@ -105,6 +109,10 @@
             // 情况9：消息提醒
             mode = 'notice';
             listSelector = ENUM.noticeSelector
+        } else if (url.searchParams.get('do') === 'favorite') {
+            // 情况10：我的收藏
+            mode = 'favorite';
+            listSelector = ENUM.favoriteSelector
         }
         console.log(`模式：${mode || '未找到'}`);
         return { mode, listSelector };
@@ -144,7 +152,7 @@
                 }
             }, true);
             console.log('新标签中打开网页')
-        } else if (listSelector == ENUM.friendsListSelector || listSelector == ENUM.integralListSelector || listSelector == ENUM.noticeSelector) {
+        } else if (listSelector == ENUM.friendsListSelector || listSelector == ENUM.integralListSelector || listSelector == ENUM.noticeSelector || listSelector == ENUM.favoriteSelector) {
             //易出bug，限制在这些网页中
             //阻止原局部刷新网页，避免编写初始化脚本
             $(document).on('click', 'a', function (e) {
