@@ -77,6 +77,9 @@
                 span.style.cursor = 'pointer';
                 span.style.color = '#0066cc';
                 span.style.marginLeft = '8px';
+                // 显示在最上层，避免被其余元素遮挡
+                span.style.position = 'relative'; 
+                span.style.zIndex = '99';//无需太大，否则弹窗无法遮住它
 
                 // 为span添加点击事件
                 span.addEventListener('click', async () => {
