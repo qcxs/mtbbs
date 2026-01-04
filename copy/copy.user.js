@@ -34,7 +34,7 @@
         style.textContent = `
         .comiis_blockcode {
             position: relative !important;
-            pointer-events: none !important; /* 禁止点击代码块 */
+            pointer-events: auto !important; /* 也允许点击代码块，若要禁止设为none */
         }
         /* 前置文字（伪元素，无真实DOM） */
         .comiis_blockcode::before {
@@ -46,7 +46,7 @@
             color: #42b983 !important;
             font-size: 14px !important;
             font-weight: bold !important;
-            pointer-events: auto !important; /* 只点击文字触发复制 */
+            pointer-events: auto !important; /* 点击文字触发复制 */
         }
     `;
         document.head.appendChild(style);
@@ -338,8 +338,20 @@
 
         // 处理媒体标签 [media]
         bbcode = bbcode.replace(
-            /<ignore_js_op>[\s\S]*?<iframe[^>]*src="([^"]+)"[^>]*>[\s\S]*?<\/ignore_js_op>/gi,
-            '[media=x,500,375]$1[/media]'
+            // 优化后的正则表达式
+            /<ignore_js_op>[\s\S]*?<iframe\s+[^>]*?\bsrc\s*=\s*(["'])(.*?)\1[^>]*?>[\s\S]*?<\/ignore_js_op>/gi,
+            function (match, quote, src) {
+                // 处理B站链接的bvid提取逻辑
+                const bvidMatch = src.match(/bvid=([A-Za-z0-9]+)/i);
+                if (bvidMatch && bvidMatch[1]) {
+                    let bvid = bvidMatch[1];
+
+                    const b23Url = `https://b23.tv/BV${bvid}`;
+                    return `[media=x,500,375]${b23Url}[/media]`;
+                }
+                // 非B站链接保持原逻辑
+                return `[media=x,500,375]${src}[/media]`;
+            }
         );
 
         // 处理表格标签
@@ -432,18 +444,15 @@
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
 
-            //处理可能的XML解析错误
             if (xmlDoc.querySelector('parsererror')) {
                 throw new Error('XML解析失败');
             }
 
-            //获取目标节点值
             const root = xmlDoc.lastChild?.firstChild?.nodeValue;
             if (typeof root === 'undefined' || root === null) {
                 throw new Error('返回数据格式不支持，改为解析本地');
             }
 
-            //创建临时元素解析网页内容
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = root;
             const contentElement = tempDiv.querySelector(selectContent);
