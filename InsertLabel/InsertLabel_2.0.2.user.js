@@ -134,6 +134,7 @@
         if (!isRemoveTouchStart) {
             try {
                 window.$('html').off('touchstart');
+                // 打开侧边栏 comiis_leftnv()
                 console.log('移除滑动打开侧边栏')
             } catch (error) {
                 console.log('可能没有侧边栏', error)
@@ -600,10 +601,11 @@
         // 取消点击事件
         mask.querySelector('.CacheBtn').addEventListener('click', e => mask.remove());
 
-        // 确定按钮事件
+        // 确定按钮事件 → 已修复换行丢失问题
         mask.querySelector('.OKBtn').addEventListener('click', e => {
             const container = mask.querySelector('#inputContainer');
-            const values = Array.from(container.querySelectorAll('[contenteditable]')).map(el => el.textContent);
+            // ✅ 修复：使用 innerText 保留换行符
+            const values = Array.from(container.querySelectorAll('[contenteditable]')).map(el => el.innerText);
             callback(...values);
             mask.remove();
         });
