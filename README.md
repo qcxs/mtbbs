@@ -1,23 +1,30 @@
 # 引言
 
-此仓库存储了**自用**适配[MT论坛](https://bbs.binmt.cc/)移动端的一些脚本。初始只是个人为[Alook浏览器](https://www.alookweb.com/)编写一些脚本，存放在123盘中。经历了不断优化，有三种脚本成功入围[编程开发 - MT论坛](https://bbs.binmt.cc/forum.php?mod=forumdisplay&fid=42&filter=digest&digest=1)精华帖，现将脚本统一整理，存储在此仓库中。
+此仓库存储了**自用**适配[MT论坛](https://bbs.binmt.cc/)移动端的一些脚本。初始只是个人为[Alook浏览器](https://www.alookweb.com/)编写一些脚本，存放在123盘中。经历了不断优化，有三种脚本成功入围[编程开发 - MT论坛](https://bbs.binmt.cc/forum.php?mod=forumdisplay&fid=42&filter=digest&digest=1)精华帖，现将脚本统一整理，存储在此仓库中，随缘更新。
 
 # 使用方法
 
-## 浏览代码
+## 通过脚本猫安装
 
+[qcxs - 用户主页 | ScriptCat](https://scriptcat.org/zh-CN/users/202514)
+不一定将所有脚本都发布在脚本猫中，但最新脚本在此更新
+
+## 通过github安装
+
+**核心脚本总在更新，此处不再提供最新代码，只提供大改动前的旧版本、稳定版。**
+在其中寻找以user.js结尾的文件，它就是脚本
 ![attachments/Pasted image 20260104130930.png](attachments/Pasted%20image%2020260104130930.png)
 点击raw，油猴自动识别
 ![attachments/Pasted image 20260104130844.png](attachments/Pasted%20image%2020260104130844.png)
 
-## 使用cdn加速
+### 使用cdn加速
 
 由于国内访问github时好时坏，也可以通过jsDelivr进行cdn加速。
-[qcxs/mtbbs CDN by jsDelivr - A free, fast, and reliable Open Source CDN](https://cdn.jsdelivr.net/gh/qcxs/mtbbs/)
+[qcxs/mtbbs CDN by jsDelivr](https://cdn.jsdelivr.net/gh/qcxs/mtbbs/)
 ![attachments/Pasted image 20260104131138.png](attachments/Pasted%20image%2020260104131138.png)
 不过由于缓存，需等待一段时间才能获取到最新版本。~~（我也不勤更新，不影响）~~
 
-## url安装
+## 从url安装
 
 脚本已重命名为user.js后缀，正常情况下，油猴会自动识别安装，也可自行输入url安装。
 ![attachments/Pasted image 20260104131438.png](attachments/Pasted%20image%2020260104131438.png)
@@ -38,11 +45,21 @@
 
 ### 功能一览
 
-[自动下一页](communityAutoNextPage/%E8%87%AA%E5%8A%A8%E4%B8%8B%E4%B8%80%E9%A1%B5.md)
+[自动下一页](autoNextPage/%E8%87%AA%E5%8A%A8%E4%B8%8B%E4%B8%80%E9%A1%B5.md)
 
 ### 帖子
 
 [【论坛脚本】论坛阅读辅助工具-自动下一页](https://bbs.binmt.cc/thread-159149-1-1.html)
+
+## 消息预览
+
+### 功能一览
+
+[消息预览](messagePreview/%E6%B6%88%E6%81%AF%E9%A2%84%E8%A7%88.md)
+
+### 帖子
+
+[\[油猴脚本\]消息预览 - MT论坛](https://bbs.binmt.cc/thread-165883-1-1.html)
 
 ## 小黑屋
 
@@ -69,6 +86,7 @@
 ### 悬浮球
 
 ball.js
+已废弃，由[标题增强](titileTools/%E6%A0%87%E9%A2%98%E5%A2%9E%E5%BC%BA.md)代替。
 
 * 由于论坛许多页面经常访问，故添加快捷链接跳转。
 * 由于论坛不会自动刷新消息，每次查看消息还需刷新网页，如果此时正在阅读其余帖子，总有不便之处。故添加自动检测新消息，当有新消息时悬浮球显示角标。
