@@ -129,7 +129,7 @@
 <link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" type="text/css" media="all" id="comiis_app_addclass"/>
 </head>
 <body>
-<div class="comiis_messages comiis_aimg_show cl" id="preview-content"></div>
+<div class="comiis_messages comiis_aimg_show cl"><div class="comiis_a comiis_message_table cl" id="preview-content"></div></div>
 </body>
 </html>`;
                 this.iframeInited = true; // 标记已初始化
@@ -250,7 +250,14 @@
 
             // 13. hide 隐藏块（支持 [hide]、[hide=任意参数]、[hide=参数,参数]）
             html = html.replace(/\[hide(?:=[^\]]*)?]([\s\S]*?)\[\/hide]/g, '<div class="comiis_quote bg_h f_c"><h2 class="f_a">本帖隐藏的内容: </h2>$1</div>');
-            
+
+            // 14. 列表 list
+            html = html.replace(/\[list=1]/gi, '<ul class="litype_1" type="1">');
+            html = html.replace(/\[list=a]/gi, '<ul class="litype_2" type="a">');
+            html = html.replace(/\[list]/gi, '<ul>');
+            html = html.replace(/\[\/list]/gi, '</ul>');
+            html = html.replace(/\[\*]/gi, '<li>');
+
             // email 邮箱标签解析
             html = html.replace(/\[email=([^\]]+)]([\s\S]*?)\[\/email]/gi, '<a href="mailto:$1" target="_blank">$2</a>');
             // 兼容无内容简写 [email]xxx@qq.com[/email]
@@ -332,12 +339,12 @@
     }
 
     // 单例挂载全局
-const instance = new BBCode2Html();
-window.BBCode2Html = {
-    show: (bb) => instance.show(bb), // 显示预览窗
-    hide: () => instance.hide(), // 隐藏
-    replaceText: (text) => instance.replaceText(text) // BBCode2Html
-};
+    const instance = new BBCode2Html();
+    window.BBCode2Html = {
+        show: (bb) => instance.show(bb), // 显示预览窗
+        hide: () => instance.hide(), // 隐藏
+        replaceText: (text) => instance.replaceText(text) // BBCode2Html
+    };
 })();
 
 // 使用示例
