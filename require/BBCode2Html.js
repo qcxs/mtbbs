@@ -59,7 +59,7 @@
                 alert('请传入有效的 BBCode 内容');
                 return;
             }
-            this.renderIframe(bbcode);
+            this.renderIframe(this.iframe, bbcode);
             this.previewModal.style.display = 'flex';
         }
 
@@ -107,19 +107,14 @@
         }
 
         /**
-         * 渲染 BBCode 到 iframe
-         * @param {string} bbcode - 原始 BBCode
-         */
-        /**
- * 渲染 BBCode 到 iframe（优化版：仅首次初始化结构，后续只替换内容）
- * @param {string} bbcode - 原始 BBCode
- */
-        renderIframe(bbcode) {
-            if (!this.iframe) return;
-            const doc = this.iframe.contentDocument;
+        * 渲染 BBCode 到 iframe
+        * @param {string} bbcode - 原始 BBCode
+        */
+        renderIframe(iframe, bbcode) {
+            if (!iframe) return;
+            const doc = iframe.contentDocument;
 
-            // 仅第一次加载时初始化完整结构（CSS+骨架）
-            if (!this.iframeInited) {
+            if (!iframe.dataset.inited) {
                 doc.documentElement.innerHTML = `
 <!DOCTYPE html>
 <html>
@@ -132,10 +127,9 @@
 <div class="comiis_messages comiis_aimg_show cl"><div class="comiis_a comiis_message_table cl" id="preview-content"></div></div>
 </body>
 </html>`;
-                this.iframeInited = true; // 标记已初始化
+                iframe.dataset.inited = 'true';
             }
 
-            // 后续只替换内容区域，不重建DOM/CSS
             const contentEl = doc.getElementById('preview-content');
             if (contentEl) {
                 contentEl.innerHTML = this.replaceText(bbcode);
@@ -343,13 +337,17 @@
     window.BBCode2Html = {
         show: (bb) => instance.show(bb), // 显示预览窗
         hide: () => instance.hide(), // 隐藏
-        replaceText: (text) => instance.replaceText(text) // BBCode2Html
+        replaceText: (text) => instance.replaceText(text), // BBCode2Html
+        renderInline: (iframe, bbcode) => instance.renderIframe(iframe, bbcode) // 内嵌iframe渲染
     };
 })();
 
 // 使用示例
 // 带预览窗，已自动注入css
 // BBCode2Html.show(`[size=5][align=center]教程预览[doge][#大拇指][/align][/size]`);
+
+// 更新iframe内容
+// BBCode2Html.renderInline(iframe,bbcode);
 
 // bbcode2html，需要自行配置css
 // console.log(BBCode2Html.replaceText("[b]加粗[/b] [color=red]红色[/color]"))

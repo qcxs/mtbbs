@@ -154,7 +154,7 @@
 
             if (tag === 'a') {
                 const href = el.getAttribute('href') || '';
-                const content = this.parseChildren(el); // 递归解析子元素（关键修复）
+                const content = this.parseChildren(el); // 递归解析子元素
                 const text = el.textContent.trim();
                 if (text.startsWith('@')) return `${text} `;
                 if (href.startsWith('mailto:')) return `[email=${href.replace('mailto:', '')}]${content}[/email]`;
@@ -199,8 +199,12 @@
 
                 // 拼接列表项（递归解析）
                 let li = '';
-                el.querySelectorAll('li').forEach(item => {
-                    li += `[*]${this.parseChildren(item)}\n`;
+                // 只遍历直接子元素 li，不包含嵌套内部的 li，避免list中同一标签被识别两次
+                // 例如：list套code，code也包含li，错误的解析code
+                Array.from(el.children).forEach(item => {
+                    if (item.tagName.toLowerCase() === 'li') {
+                        li += `[*]${this.parseChildren(item)}\n`;
+                    }
                 });
 
                 // 输出最终 BBCode
@@ -237,12 +241,9 @@
 
             // 解析音频播放器 [audio]
             if (tag === 'ignore_js_op') {
-                // 查找内部是否包含 .media 容器
                 const mediaHref = el.querySelector('div.media a');
                 if (mediaHref) {
-                    // 提取里面的音频/视频真实URL
                     const href = mediaHref.href;
-                    // 返回你需要的 BBCode
                     return `[audio]${href}[/audio]`;
                 }
             }
@@ -310,7 +311,7 @@
         // 递归子节点
         parseChildren(el) {
             const tag = el.tagName?.toLowerCase();
-            if (this.noRecurseTags.has(tag)) {
+            if (this.noRecurseTags.has(tag) || el.classList.contains('comiis_blockcode')) { // 阻止递归code标签
                 return el.textContent.trim();
             }
 
