@@ -122,12 +122,30 @@
             return this.parseChildren(el);
         }
 
-        // 责任链1：class 匹配
+        // 责任链1：class、id 匹配
         matchByClass(el) {
             const cls = el.className || '';
 
-            if (cls.includes('pstatus') || cls.includes('comiis_modact')) {
-                return el.textContent;
+            if (cls.includes('pstatus')) {
+                const text = el.textContent.trim();
+                // 正则匹配：作者名 和 编辑时间
+                const match = text.match(/本帖最后由\s*(.+?)\s*于\s*([\d\-:\s]+)\s*编辑/);
+                if (match) {
+                    const author = match[1].trim(); // 作者
+                    const time = match[2].trim();  // 时间
+                    // 格式化输出
+                    return `作者: ${author}，修改时间：${time}\n`;
+                }
+                return '';
+            }
+
+            if (cls.includes('comiis_modact')) {
+                const text = el.textContent.trim();
+                if (text.includes('精华'))
+                    return '[精华帖]';
+                if (text.includes('高亮'))
+                    return '[高亮帖]';
+                return '';
             }
 
             if (cls.includes('comiis_blockcode')) {
@@ -146,7 +164,43 @@
         matchByTagAndAttr(el) {
             const tag = el.tagName.toLowerCase();
 
-            if (tag === 'script') return '';
+            if (tag === 'script') {
+                const scriptContent = el.textContent || '';
+
+                // 解析哔哩哔哩视频 [media]
+                if (scriptContent.includes('flv_') && scriptContent.includes('player.bilibili.com')) {
+                    // 正则提取 bvid
+                    const bvMatch = scriptContent.match(/bvid=([^&'"]+)/i);
+                    if (bvMatch && bvMatch[1]) {
+                        // 直接返回 media 标签，不再向下解析
+                        return `[media=x,500,375]https://b23.tv/BV${bvMatch[1]}[/media]`;
+                    }
+                }
+
+                // 解析音频播放器 [audio]
+                if (scriptContent.includes('detectPlayer') && (scriptContent.includes('cn/api/163_') || scriptContent.includes('mp3_'))) {
+                    // 截取 ( 和 ) 之间的所有参数
+                    const left = scriptContent.indexOf('(');
+                    const right = scriptContent.indexOf(')', left);
+                    const paramsStr = scriptContent.substring(left + 1, right);
+
+                    // 分割所有参数
+                    const params = paramsStr.split(',').map(p => p.trim().replace(/["']/g, ''));
+
+                    // 取第三个参数（索引 2）
+                    const url = params[2] || '';
+                    if (url) {
+                        return `[audio]${url}[/audio]`;
+                    }
+                }
+
+                // 其他script标签
+                return '';
+            }
+
+            // 解析音频播放器 [audio]，已在script中编写，此处过滤：“如果无法播放，请点击此处在新窗口打开”
+            if (el.id.startsWith('cn/api/163_') || el.id.startsWith('mp3_')) return '';
+
             if (tag === 'strong' || tag === 'b') return `[b]${this.parseChildren(el)}[/b]`;
             if (tag === 'i') return `[i]${this.parseChildren(el)}[/i]`;
             if (tag === 'u') return `[u]${this.parseChildren(el)}[/u]`;
@@ -234,20 +288,6 @@
             if (tag === 'tr') return `[tr]${this.parseChildren(el)}[/tr]`;
             if (tag === 'td') return `[td]${this.parseChildren(el)}[/td]`;
 
-            if (tag === 'iframe' && el.src.includes('bilibili')) {
-                const bv = el.src.match(/bvid=([^&]+)/i);
-                if (bv) return `[media=x,500,375]https://b23.tv/BV${bv[1]}[/media]`;
-            }
-
-            // 解析音频播放器 [audio]
-            if (tag === 'ignore_js_op') {
-                const mediaHref = el.querySelector('div.media a');
-                if (mediaHref) {
-                    const href = mediaHref.href;
-                    return `[audio]${href}[/audio]`;
-                }
-            }
-
             if (tag === 'hr') return `[hr]`;
             if (tag === 'embed' || tag === 'object') return '';
             if (tag === 'br') return '\n';
@@ -255,17 +295,18 @@
             return null;
         }
 
-        // 责任链3：正则匹配（不破坏DOM，可继续递归解析）
+        // 责任链3：复杂匹配，为了解析一个bbcode涉及多个html
         matchByRegex(el) {
             if (el.tagName.toLowerCase() !== 'div') return null;
             const cls = el.className || '';
 
-            // 1. 引用 [quote]
+            // 1. 引用 [quote]，引用和free格式相同，需提前解析
             if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('b_dashed') && cls.includes('f_c')) {
                 const font = el.querySelector('font');
                 const bq = el.querySelector('blockquote');
                 if (font?.textContent.startsWith('回复') && bq) {
-                    const content = this.parseChildren(bq).replace(/^回复/, '').trim();
+                    // 删除子节点的：[size=2]回复[/size] + 后面所有空白/不可见字符
+                    const content = this.parseChildren(bq).replace(/^\[size=2\]回复\[\/size\]\s*/, '').trim();
                     return `\n[quote]${content}[/quote]\n`;
                 }
             }
@@ -327,7 +368,6 @@
                 .replace(/\n{2,}/g, '\n')
                 .replace(/[ \t]+/g, ' ')
                 .trim()
-                .replace(/\[size=2\]回复\[\/size\] ?/g, ''); // quote的回复2字特殊处理
         }
     }
 

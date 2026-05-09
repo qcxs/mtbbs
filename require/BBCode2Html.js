@@ -252,6 +252,10 @@
             html = html.replace(/\[\/list]/gi, '</ul>');
             html = html.replace(/\[\*]/gi, '<li>');
 
+            // 解析背景色 background
+            html = html.replace(/\[background=([^\]]+)]/gi, '<font style="background-color:$1">');
+            html = html.replace(/\[\/background]/gi, '</font>');
+
             // email 邮箱标签解析
             html = html.replace(/\[email=([^\]]+)]([\s\S]*?)\[\/email]/gi, '<a href="mailto:$1" target="_blank">$2</a>');
             // 兼容无内容简写 [email]xxx@qq.com[/email]
