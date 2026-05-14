@@ -112,8 +112,8 @@
                 return tagMatch;
             }
 
-            // 责任链 3：正则匹配（返回 BBCode + 继续解析子元素）
-            const regexMatch = this.matchByRegex(el);
+            // 责任链 3：复杂匹配
+            const regexMatch = this.matchByOthers(el);
             if (regexMatch !== null) {
                 return regexMatch;
             }
@@ -125,6 +125,9 @@
         // 责任链1：class、id 匹配
         matchByClass(el) {
             const cls = el.className || '';
+
+            // 本帖的隐藏内容
+            if (cls.includes('f_a')) return '';
 
             if (cls.includes('pstatus')) {
                 const text = el.textContent.trim();
@@ -296,7 +299,7 @@
         }
 
         // 责任链3：复杂匹配，为了解析一个bbcode涉及多个html
-        matchByRegex(el) {
+        matchByOthers(el) {
             if (el.tagName.toLowerCase() !== 'div') return null;
             const cls = el.className || '';
 
@@ -324,7 +327,9 @@
             if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
                 const h2 = el.querySelector('h2');
                 if (h2?.textContent.includes('本帖隐藏的内容')) {
-                    const content = this.parseChildren(el).replace(/^本帖隐藏的内容:/, '').trim();
+                    // 已由class处理
+                    // const content = this.parseChildren(el).replace(/^本帖隐藏的内容:/, '').trim();
+                    const content = this.parseChildren(el);
                     return `\n[hide]${content}[/hide]\n`;
                 }
             }
@@ -369,18 +374,61 @@
                 .replace(/[ \t]+/g, ' ')
                 .trim()
         }
+
+        // 渲染 iframe 内容
+        renderIframe(iframe, html) {
+            if (!iframe) return;
+            const doc = iframe.contentDocument;
+
+            if (!iframe.dataset.inited) {
+                doc.documentElement.innerHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<style>
+    /* 表情大小 */
+    .comiis_postli img[smilieid] {
+        max-height: 22px;
+        margin: 1px 1px 0;
+        vertical-align: top;
+    }
+</style>
+<link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css?VZx" type="text/css" media="all">
+<link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" id="comiis_app_addclass">
+</head>
+<body>
+    <div class="comiis_postli comiis_list_readimgs nfqsqi" id="" data-ishandlingviewimg="true">
+        <div class="comiis_messages comiis_aimg_show cl">
+            <div class="comiis_a comiis_message_table cl" id="preview-content"></div>
+        </div>
+    <div>
+</body>
+</html>`;
+                iframe.dataset.inited = 'true';
+            }
+
+            const el = doc.getElementById('preview-content');
+            if (el) el.innerHTML = html;
+        }
     }
 
     const instance = new Html2BBCode();
     window.Html2BBCode = {
-        convert: (input) => instance.convert(input)
+        convert: (input) => instance.convert(input),
+        // 不解析html，而是直接渲染html
+        renderIframe: (iframe, html) => instance.renderIframe(iframe, html)
     };
 })();
 
 // 使用方法
-// 方式1：传入 DOM
+// 传入 DOM
 // console.log(Html2BBCode.convert(document.querySelector('.comiis_messages')))
 
-// 方式2：传入 HTML 字符串（自动转DOM）
+// 传入 HTML 字符串（自动转DOM）
 // const html = '<div class="comiis_quote bg_h f_c">...</div>';
 // console.log(Html2BBCode.convert(html));
+
+// 传入iframe、html，渲染iframe
+// Html2BBCode.renderIframe(iframe,html);

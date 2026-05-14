@@ -1,10 +1,11 @@
 // ==UserScript==
-// @name         [MT论坛]消息提醒预览 by：青春向上
+// @name         [MT论坛]消息提醒预览
 // @namespace    https://github.com/qcxs/mtbbs
-// @version      2026-05-01
+// @version      2026-05-14
 // @description  显示消息预览，短消息快速查看，避免“不看担心错过消息，看了发现是水回复”
 // @author       青春向上
 // @match        https://bbs.binmt.cc/home.php?mod=space&do=notice&view=mypost*
+// @require      https://cdn.jsdelivr.net/gh/qcxs/mtbbs@master/require/Html2BBCode.js
 // @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
 // @run-at       document-idle
@@ -16,9 +17,9 @@
     // 配置项
     const noticeSelector = '.comiis_notice_list>ul';
     const itemSelector = `${noticeSelector}>li`;
-    const selectContent = 'div.comiis_messages.comiis_aimg_show.cl';
+    const selectContent = 'div.comiis_messages';
     const MAX_CACHE_COUNT = 50; // 最大缓存数量（超过自动删除最老的）
-    const MAX_LENGTH = 100; // 最大显示字数
+    const MAX_LENGTH = 100; // 最大显示字数，超过此长度，优先预览
     const PROCESSED_MARK = 'mt-preview-processed'; // 已处理标记
     const CACHE_STORAGE_KEY = 'mt_bbs_preview_cache'; // 统一缓存键
 
@@ -72,8 +73,7 @@
             }
         }
 
-        const showContent = truncateText(content, MAX_LENGTH);
-        insertContentToLi(li, showContent);
+        insertContentToLi(li, content);
     }
 
     /**
@@ -106,13 +106,15 @@
             const root = xmlDoc.lastChild?.firstChild?.nodeValue;
             if (!root) throw new Error('数据格式错误');
 
+            // 判断是不是回复，避免执行script
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = root;
             const contentElement = tempDiv.querySelector(selectContent);
             tempDiv.remove();
 
-            const content = contentElement?.textContent.trim() || '';
+            const content = contentElement?.innerHTML || '';
             if (!content) throw new Error('内容为空');
+
             return content;
 
         } catch (e) {
@@ -120,24 +122,75 @@
         }
     }
 
-    /**
-     * 文本截断
-     */
-    function truncateText(text, maxLen) {
-        if (!text) return '';
-        return text.length <= maxLen ? text : '...' + text.slice(text.length - maxLen, text.length);
-    }
+    // 插入预览内容
+    function insertContentToLi(li, html) {
+        if (window.Html2BBCode == null) {
+            alert('核心Html2BBCode未加载，请查看require链接是否正确')
+            return;
+        }
+        const bbcode = Html2BBCode.convert(html);
 
-    /**
-     * 插入预览内容
-     */
-    function insertContentToLi(li, content) {
+        // 默认：显示 bbcode，隐藏 iframe
+        // BBCode
         const span = document.createElement('span');
-        span.textContent = `${content}`;
+        span.textContent = `${bbcode}`;
         li.appendChild(span);
+
+        // Html
+        const iframe = document.createElement('iframe');
+        // 占满父元素 + 无边框
+        iframe.style.cssText = `
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: none; 
+    `;
+        li.appendChild(iframe);
+        // 渲染iframe
+        Html2BBCode.renderIframe(iframe, html);
+
+        // 切换显示按钮
+        const spanButton = document.createElement('span');
+        spanButton.textContent = `预览`;
+        spanButton.style.cssText = `
+        float: right;
+        color: #53bcf5 !important;
+        padding-right: 20px;
+        cursor: pointer;
+    `;
+
+        // 核心：切换逻辑
+        let isPreview = false; // 标记当前是否是预览模式
+
+        function toggleView() {
+            isPreview = !isPreview; // 取反
+
+            if (isPreview) {
+                span.style.display = 'none';   // 隐藏 BBCode
+                iframe.style.display = 'block'; // 显示预览
+                spanButton.textContent = 'bbcode';
+            } else {
+                span.style.display = 'block';  // 显示 BBCode
+                iframe.style.display = 'none'; // 隐藏预览
+                spanButton.textContent = '预览';
+            }
+        }
+
+        // 绑定点击
+        spanButton.onclick = toggleView;
+        span.onclick = toggleView;
+
+        // 如果长度>MAX_LENGTH，自动切换到预览
+        if (bbcode.length > MAX_LENGTH) {
+            toggleView();
+        }
+
+        li.querySelector('h2').appendChild(spanButton);
     }
 
-    // ====================== 全新统一缓存管理（单key + 数量限制）======================
+
+
+
     /**
      * 读取统一缓存数据
      */

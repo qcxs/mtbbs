@@ -120,11 +120,24 @@
 <html>
 <head>
 <meta charset="utf-8">
-<link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css?LOt" type="text/css" media="all">
-<link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" type="text/css" media="all" id="comiis_app_addclass"/>
+<meta name="viewport" content="width=device-width">
+<style>
+    /* 表情大小 */
+    .comiis_postli img[smilieid] {
+        max-height: 22px;
+        margin: 1px 1px 0;
+        vertical-align: top;
+    }
+</style>
+<link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css?VZx" type="text/css" media="all">
+<link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" id="comiis_app_addclass">
 </head>
 <body>
-<div class="comiis_messages comiis_aimg_show cl"><div class="comiis_a comiis_message_table cl" id="preview-content"></div></div>
+    <div class="comiis_postli comiis_list_readimgs nfqsqi" id="" data-ishandlingviewimg="true">
+        <div class="comiis_messages comiis_aimg_show cl">
+            <div class="comiis_a comiis_message_table cl" id="preview-content"></div>
+        </div>
+    <div>
 </body>
 </html>`;
                 iframe.dataset.inited = 'true';
