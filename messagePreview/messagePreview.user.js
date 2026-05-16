@@ -1,249 +1,301 @@
 // ==UserScript==
 // @name         [MT论坛]消息提醒预览
 // @namespace    https://github.com/qcxs/mtbbs
-// @version      2026-05-14
-// @description  显示消息预览，短消息快速查看，避免“不看担心错过消息，看了发现是水回复”
+// @version      2026-05-16
+// @description  消息预览：避免查看回复频繁跳转网页，帖子回复查看：查看当前用户对某帖的回复
 // @author       青春向上
-// @match        https://bbs.binmt.cc/home.php?mod=space&do=notice&view=mypost*
-// @require      https://cdn.jsdelivr.net/gh/qcxs/mtbbs@master/require/Html2BBCode.js
+// @match        *://bbs.binmt.cc/home.php?mod=space&do=notice&view=mypost*
+// @match        *://bbs.binmt.cc/home.php?*type=reply*
 // @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
-// @run-at       document-idle
+// @run-at       document-idline
 // ==/UserScript==
 
-(function () {
+(async function () {
     'use strict';
 
-    // 配置项
-    const noticeSelector = '.comiis_notice_list>ul';
-    const itemSelector = `${noticeSelector}>li`;
-    const selectContent = 'div.comiis_messages';
-    const MAX_CACHE_COUNT = 50; // 最大缓存数量（超过自动删除最老的）
-    const MAX_LENGTH = 100; // 最大显示字数，超过此长度，优先预览
-    const PROCESSED_MARK = 'mt-preview-processed'; // 已处理标记
-    const CACHE_STORAGE_KEY = 'mt_bbs_preview_cache'; // 统一缓存键
+    // 全局配置 
+    const CONFIG = {
+        PROCESSED_MARK: 'mt-preview-processed',        // 已处理标记
+        // 消息提醒
+        notice: {
+            noticeSelector: '.comiis_notice_list>ul',       // 消息列表外层容器选择器
+            selectContent: 'div.comiis_messages',          // 消息内容DOM选择器
+            validCheck: 'a.lit[href*="goto=findpost"]',      // li校验选择器
+            MAX_CACHE_COUNT: 100,                          // 本地缓存最大保存条数
+            CACHE_STORAGE_KEY: 'mt_bbs_preview_cache',     // localStorage 缓存键名
+            REQUEST_DELAY: 100                             // 消息请求队列间隔时间（毫秒）
+        },
+        // 帖子回复查看
+        postReply: {
+            threadSelector: '.comiis_forumlist>ul',        // 帖子列表选择器
+            threadASelector: '.mmlist_li_box a',           // 帖子标题链接选择器
+            validCheck: '.mmlist_li_box a',                 // li校验选择器
+            loadedMark: 'replyLoaded'                     // 加载状态标记（dataset驼峰命名）
+        }
+    };
 
-    // 立即执行一次初始化
-    processAllNotices();
+    // 页面判断 
+    const urlObj = new URL(window.location.href);
+    const searchParams = urlObj.searchParams;
+    const phpFile = urlObj.pathname.split('/').pop();
+    let pageType = '未知页面'
 
-    // 监听 UL 内部子节点变化（监听 li 新增/删除）
-    const ulElement = document.querySelector(noticeSelector);
-    if (ulElement) {
-        const observer = new MutationObserver((mutations) => {
-            processAllNotices();
+    // 页面分流执行
+    if (phpFile === 'home.php' && searchParams.get('mod') === 'space' && searchParams.get('do') === 'notice') {
+        await initNoticePreview();
+        pageType = '【消息提醒页】'
+    } else if (phpFile === 'home.php' && searchParams.get('mod') === 'space' && searchParams.get('do') === 'thread' && searchParams.get('type') === 'reply') {
+        initPostReply();
+        pageType = '【帖子回复页】'
+    }
+    console.log('当前页面类型：', pageType);
+
+    // 通用工具函数
+    async function fetchReplyRoot(url, timeout = 3000) {
+        try {
+            const res = await fetch(url, { signal: AbortSignal.timeout(timeout) });
+            if (!res.ok) return '';
+            const xml = new DOMParser().parseFromString(await res.text(), 'text/xml');
+            return xml.querySelector('root')?.textContent || '';
+        } catch {
+            return '';
+        }
+    }
+
+    /**
+     * 通用列表动态监听
+     * @param containerSel 外层容器选择器
+     * @param itemSel 要监听新增的子项选择器
+     * @param callback 新增元素回调
+     */
+    function initCommonListObserver(containerSel, itemSel, validCheck, callback) {
+
+        const container = document.querySelector(containerSel);
+        if (!container) {
+            console.log('监听失败，没有帖子！')
+            return;
+        }
+
+        // 先初始化已有元素
+        document.querySelectorAll(itemSel).forEach(el => {
+            if (validCheck(el))
+                callback(el)
         });
 
-        observer.observe(ulElement, {
+        // 统一监听逻辑
+        const observer = new MutationObserver(muts => {
+            muts.forEach(mut => {
+                mut.addedNodes.forEach(node => {
+                    // 过滤：仅元素节点 + 匹配目标选择器
+                    if (node.nodeType === 1 && node.matches(itemSel)) {
+                        if (validCheck(node)) callback(node);
+                    }
+                });
+            });
+        });
+
+        observer.observe(container, {
             childList: true,
             subtree: false
         });
     }
 
-    /**
-     * 处理所有通知（自动跳过已处理的）
-     */
-    function processAllNotices() {
-        const items = document.querySelectorAll(itemSelector);
-        items.forEach(li => {
-            if (li.hasAttribute(PROCESSED_MARK)) return;
-            processNoticeItem(li);
-        });
-    }
 
-    /**
-     * 处理单条通知
-     * @param {HTMLElement} li
-     */
-    async function processNoticeItem(li) {
-        li.setAttribute(PROCESSED_MARK, 'true');
+    // 功能一：消息预览
+    async function initNoticePreview() {
+        const cfg = CONFIG.notice;
 
-        const viewLink = li.querySelector('a.lit[href*="goto=findpost"]');
-        if (!viewLink) return;
-
-        const { tid, pid } = getTidPidFromUrl(viewLink.href);
-        if (!tid || !pid) return;
-
-        const cacheKey = `${tid}_${pid}`;
-        let content = getCache(cacheKey);
-
-        if (!content) {
-            content = await fetchReplyContent(tid, pid);
-            if (content && !content.includes('失败')) {
-                setCache(cacheKey, content);
-            }
-        }
-
-        insertContentToLi(li, content);
-    }
-
-    /**
-     * 从链接提取 tid、pid
-     */
-    function getTidPidFromUrl(url) {
-        const params = new URLSearchParams(url);
-        return {
-            tid: params.get('ptid'),
-            pid: params.get('pid')
-        };
-    }
-
-    /**
-     * 获取回复内容
-     */
-    async function fetchReplyContent(tid, pid) {
+        // 只有发送fetch请求后，才写入list至localstorage，其余情况在内存中执行
+        let cacheList = [];
         try {
-            const response = await fetch(
-                `https://bbs.binmt.cc/forum.php?mod=viewthread&tid=${tid}&viewpid=${pid}&mobile=2&inajax=1`,
-                { signal: AbortSignal.timeout(5000) }
-            );
-
-            if (!response.ok) throw new Error('网络请求失败');
-            const xmlText = await response.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-
-            if (xmlDoc.querySelector('parsererror')) throw new Error('XML解析失败');
-            const root = xmlDoc.lastChild?.firstChild?.nodeValue;
-            if (!root) throw new Error('数据格式错误');
-
-            // 判断是不是回复，避免执行script
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = root;
-            const contentElement = tempDiv.querySelector(selectContent);
-            tempDiv.remove();
-
-            const content = contentElement?.innerHTML || '';
-            if (!content) throw new Error('内容为空');
-
-            return content;
-
+            const data = localStorage.getItem(cfg.CACHE_STORAGE_KEY);
+            if (data) {
+                const parsed = JSON.parse(data);
+                // 必须是数组才使用，否则清空重建
+                if (Array.isArray(parsed)) {
+                    cacheList = parsed;
+                } else {
+                    throw new Error('缓存格式有误，自动重置！')
+                }
+            }
         } catch (e) {
-            return `[获取失败：${e.message}]`;
+            console.log('发生错误：',e)
+            // 旧版/损坏缓存：清空缓存
+            localStorage.removeItem(cfg.CACHE_STORAGE_KEY);
+            cacheList = [];
         }
-    }
 
-    // 插入预览内容
-    function insertContentToLi(li, html) {
-        if (window.Html2BBCode == null) {
-            alert('核心Html2BBCode未加载，请查看require链接是否正确')
-            return;
-        }
-        const bbcode = Html2BBCode.convert(html);
+        const requestQueue = [];
+        let isQueueRunning = false;
 
-        // 默认：显示 bbcode，隐藏 iframe
-        // BBCode
-        const span = document.createElement('span');
-        span.textContent = `${bbcode}`;
-        li.appendChild(span);
+        initCommonListObserver(cfg.noticeSelector, `${cfg.noticeSelector}>li`,
+            li => !li.hasAttribute(cfg.PROCESSED_MARK) && li.querySelector(cfg.validCheck),
+            li => {
+                if (!li.hasAttribute(CONFIG.PROCESSED_MARK)) {
+                    processNoticeItem(li);
+                }
+            });
 
-        // Html
-        const iframe = document.createElement('iframe');
-        // 占满父元素 + 无边框
-        iframe.style.cssText = `
-        width: 100%;
-        height: 100%;
-        border: none;
-        display: none; 
-    `;
-        li.appendChild(iframe);
-        // 渲染iframe
-        Html2BBCode.renderIframe(iframe, html);
+        function processNoticeItem(li) {
+            li.setAttribute(CONFIG.PROCESSED_MARK, 'true');
+            const viewLink = li.querySelector(cfg.validCheck);
+            if (!viewLink) return;
 
-        // 切换显示按钮
-        const spanButton = document.createElement('span');
-        spanButton.textContent = `预览`;
-        spanButton.style.cssText = `
-        float: right;
-        color: #53bcf5 !important;
-        padding-right: 20px;
-        cursor: pointer;
-    `;
+            const { tid, pid } = getTidPidFromUrl(viewLink.href);
+            if (!tid || !pid) return;
+            const cacheKey = `${tid}_${pid}`;
+            const cacheData = cacheList.find(item => item.key === cacheKey);
 
-        // 核心：切换逻辑
-        let isPreview = false; // 标记当前是否是预览模式
-
-        function toggleView() {
-            isPreview = !isPreview; // 取反
-
-            if (isPreview) {
-                span.style.display = 'none';   // 隐藏 BBCode
-                iframe.style.display = 'block'; // 显示预览
-                spanButton.textContent = 'bbcode';
+            if (cacheData) {
+                insertContentToLi(li, cacheData.content, cacheData.replyHref);
             } else {
-                span.style.display = 'block';  // 显示 BBCode
-                iframe.style.display = 'none'; // 隐藏预览
-                spanButton.textContent = '预览';
+                requestQueue.push({ li, tid, pid, cacheKey });
+                if (!isQueueRunning) runQueue();
             }
         }
 
-        // 绑定点击
-        spanButton.onclick = toggleView;
-        span.onclick = toggleView;
+        // 请求队列，避免短时间内大量请求，容易封ip
+        async function runQueue() {
+            if (requestQueue.length === 0) { isQueueRunning = false; return; }
+            isQueueRunning = true;
+            const task = requestQueue.shift();
 
-        // 如果长度>MAX_LENGTH，自动切换到预览
-        if (bbcode.length > MAX_LENGTH) {
-            toggleView();
+            try {
+                const url = `https://bbs.binmt.cc/forum.php?mod=viewthread&tid=${task.tid}&viewpid=${task.pid}&mobile=2&inajax=1`;
+                const rootHtml = await fetchReplyRoot(url);
+                const result = parseContentAndReplyHref(rootHtml);
+                insertContentToLi(task.li, result.content, result.replyHref);
+
+                if (result.content && !result.content.includes('失败') && !result.content.includes('[空内容]')) {
+                    cacheList = cacheList.filter(item => item.key !== task.cacheKey);
+                    cacheList.unshift({ key: task.cacheKey, ...result, time: Date.now() });
+                    if (cacheList.length > cfg.MAX_CACHE_COUNT) cacheList = cacheList.slice(0, cfg.MAX_CACHE_COUNT);
+                    localStorage.setItem(cfg.CACHE_STORAGE_KEY, JSON.stringify(cacheList));
+                }
+            } catch (e) {
+                insertContentToLi(task.li, '[加载失败]', '');
+            } finally {
+                setTimeout(runQueue, cfg.REQUEST_DELAY);
+            }
         }
 
-        li.querySelector('h2').appendChild(spanButton);
-    }
+        function getTidPidFromUrl(url) {
+            const p = new URLSearchParams(url);
+            return { tid: p.get('ptid'), pid: p.get('pid') };
+        }
 
+        // 解析回复内容、回复评论链接
+        function parseContentAndReplyHref(rootHtml) {
+            try {
+                if (!rootHtml) return { content: '[获取失败]', replyHref: '' };
+                const div = document.createElement('div');
+                div.innerHTML = rootHtml;
+                const content = div.querySelector(cfg.selectContent)?.innerHTML?.trim() || '[空内容]';
+                const replyHref = div.querySelector('a[href*="action=reply"]')?.href || '';
+                div.remove();
+                return { content, replyHref };
+            } catch { return { content: '[解析失败]', replyHref: '' }; }
+        }
 
+        // 插入预览内容
+        function insertContentToLi(li, html, replyHref) {
+            const box = document.createElement('div');
+            box.style.width = '100%';
+            li.appendChild(box);
+            const root = box.attachShadow({ mode: 'open' });
+            root.innerHTML = `
+                <style>.comiis_postli img[smilieid]{max-height:22px;margin:1px;vertical-align:top;}</style>
+                <link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css">
+                <link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css">
+                <div class="comiis_postli"><div class="comiis_messages"><div class="comiis_a">${html}</div></div></div>`;
 
-
-    /**
-     * 读取统一缓存数据
-     */
-    function getCacheData() {
-        try {
-            const data = localStorage.getItem(CACHE_STORAGE_KEY);
-            return data ? JSON.parse(data) : { list: [] };
-        } catch {
-            return { list: [] };
+            if (replyHref) {
+                const btn = document.createElement('span');
+                btn.textContent = '回复';
+                btn.style.cssText = 'float:right;color:#53bcf5;margin-right:20px;cursor:pointer';
+                btn.onclick = e => { e.stopPropagation(); window.open(replyHref, '_blank'); };
+                li.querySelector('h2')?.appendChild(btn);
+            }
         }
     }
 
-    /**
-     * 保存缓存数据
-     */
-    function saveCacheData(data) {
-        localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(data));
-    }
+    // 功能二：帖子回复页 - 点击查看楼主回复
+    function initPostReply() {
+        const cfg = CONFIG.postReply;
 
-    /**
-     * 获取单条缓存
-     */
-    function getCache(key) {
-        const cache = getCacheData();
-        const item = cache.list.find(i => i.key === key);
-        return item ? item.content : null;
-    }
+        // 初始化+动态新增li自动加按钮
+        initCommonListObserver(cfg.threadSelector, `${cfg.threadSelector}>li`,
+            li => !li.hasAttribute(cfg.PROCESSED_MARK) && li.querySelector(cfg.validCheck),
+            li => { createCheckReplyButton(li); });
 
-    /**
-     * 设置单条缓存（超过最大数量删除最老的）
-     */
-    function setCache(key, content) {
-        const cache = getCacheData();
+        // 为单个 li 创建按钮
+        function createCheckReplyButton(li) {
+            li.setAttribute(CONFIG.PROCESSED_MARK, 'true');
 
-        // 已存在则更新时间
-        const existIndex = cache.list.findIndex(i => i.key === key);
-        if (existIndex > -1) {
-            cache.list.splice(existIndex, 1);
+            // 为每个帖子添加按钮
+            const btn = document.createElement('span');
+            btn.textContent = '查看回复';
+            btn.style.cssText = `
+                display: block;
+                width: 100%;
+                text-align: center;
+                padding: 6px 0;
+                color:#53bcf5;
+                background: #f7f8fa;
+                border-radius: 4px;
+                font-size: 14px;
+            `;
+
+            // 点击加载
+            btn.onclick = async () => {
+                // 防重复请求核心 
+                if (li.dataset[cfg.loadedMark]) return;
+                li.dataset[cfg.loadedMark] = "true";
+
+                // 清除旧数据 
+                li.dataset.replyLoaded = '';
+                btn.textContent = '加载中...';
+                li.querySelectorAll('div[id^="pid"]').forEach(el => el.remove());
+
+                try {
+                    // 提取当前帖子信息
+                    const threadA = li.querySelector(cfg.threadASelector);
+                    if (!threadA) throw new Error('获取帖子信息失败');
+
+                    const tid = threadA.href.match(/thread-(\d+)-/)?.[1];
+                    const authorid = searchParams.get('uid') || window.discuz_uid; // 别人uid、自己uid
+                    if (!tid || !authorid) throw new Error('tid/uid 获取失败');
+
+                    // 请求数据
+                    const apiUrl = `https://bbs.binmt.cc/forum.php?mod=viewthread&tid=${tid}&page=1&authorid=${authorid}&inajax=1`;
+                    const rootHtml = await fetchReplyRoot(apiUrl);
+                    const pidElements = parseAllPidElements(rootHtml);
+
+                    // 插入新数据
+                    if (pidElements.length) {
+                        pidElements.forEach(el => li.appendChild(el));
+                        btn.textContent = `刷新回复 (${pidElements.length}条)`; // 成功 → 刷新
+                    } else {
+                        btn.textContent = '无回复';
+                    }
+
+                } catch (err) {
+                    // 失败 → 重试
+                    btn.textContent = '重试';
+                    console.warn('加载异常', err);
+                } finally {
+                    li.dataset[cfg.loadedMark] = "";
+                }
+            };
+            li.appendChild(btn);
         }
 
-        // 加入最新数据
-        cache.list.unshift({
-            key,
-            content,
-            time: Date.now()
-        });
-
-        // 超过最大数量，删除最老的
-        if (cache.list.length > MAX_CACHE_COUNT) {
-            cache.list.pop();
+        function parseAllPidElements(rootHtml) {
+            if (!rootHtml) throw new Error('获取回复数据失败');
+            const div = document.createElement('div');
+            div.innerHTML = rootHtml;
+            return Array.from(div.querySelectorAll('div[id^="pid"]'));
         }
-
-        saveCacheData(cache);
     }
-
 })();

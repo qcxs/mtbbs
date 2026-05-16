@@ -59,7 +59,8 @@
                 alert('请传入有效的 BBCode 内容');
                 return;
             }
-            this.renderIframe(this.iframe, bbcode);
+
+            this.renderShadowDOM(this.iframe, this.replaceText(bbcode));
             this.previewModal.style.display = 'flex';
         }
 
@@ -81,17 +82,17 @@
             // 直接 innerHTML 一次性渲染所有结构 + 行内样式
             const modal = document.createElement('div');
             modal.id = 'bbcode-preview-modal';
-            modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.75);z-index:999999;display:none;align-items:center;justify-content:center;font-family:system-ui,sans-serif;';
+            modal.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.5);z-index:999999;display:none;align-items:center;justify-content:center;font-family:system-ui,sans-serif;';
 
             modal.innerHTML = `
-<div style="width:92%;max-width:960px;height:88vh;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,0.3);display:flex;flex-direction:column;">
+<div style="width:92%;max-width:960px;min-height: 30vh;max-height:88vh;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 10px 50px rgba(0,0,0,0.3);display:flex;flex-direction:column;">
     <div style="padding:12px 20px;background:#f8f8f8;border-bottom:1px solid #e5e5e5;font-size:15px;font-weight:500;display:flex;justify-content:space-between;align-items:center;">
         <span>BBCode 内容预览</span>
         <button id="close-preview" style="padding:5px 11px;border:none;background:#ff4d4f;color:#fff;border-radius:4px;cursor:pointer;">关闭</button>
     </div>
-    <!-- iframe 容器：增加左右内边距 -->
-    <div style="flex:1; padding: 0 20px; background:#fff;">
-        <iframe id="bbcode-preview-iframe" style="width:100%;height:100%;border:none;background:#fff;"></iframe>
+    <!-- shadowRoot 容器：增加左右内边距 -->
+    <div style="flex:1; padding: 0 20px; overflow: auto; background:#fff;">
+        <div id="bbcode-preview" style="width:100%;height:100%;border:none;background:#fff;"></div>
     </div>
 </div>
 `;
@@ -99,7 +100,7 @@
             document.body.appendChild(modal);
 
             this.previewModal = modal;
-            this.iframe = modal.querySelector('#bbcode-preview-iframe');
+            this.iframe = modal.querySelector('#bbcode-preview');
 
             // 绑定事件
             document.getElementById('close-preview').addEventListener('click', () => this.hide());
@@ -107,46 +108,39 @@
         }
 
         /**
-        * 渲染 BBCode 到 iframe
-        * @param {string} bbcode - 原始 BBCode
-        */
-        renderIframe(iframe, bbcode) {
-            if (!iframe) return;
-            const doc = iframe.contentDocument;
+         * 渲染 html 到 shadowRoot
+         */
+        renderShadowDOM(container, html) {
+            if (!container) return;
 
-            if (!iframe.dataset.inited) {
-                doc.documentElement.innerHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width">
-<style>
-    /* 表情大小 */
-    .comiis_postli img[smilieid] {
-        max-height: 22px;
-        margin: 1px 1px 0;
-        vertical-align: top;
-    }
-</style>
-<link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css?VZx" type="text/css" media="all">
-<link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" id="comiis_app_addclass">
-</head>
-<body>
-    <div class="comiis_postli comiis_list_readimgs nfqsqi" id="" data-ishandlingviewimg="true">
-        <div class="comiis_messages comiis_aimg_show cl">
-            <div class="comiis_a comiis_message_table cl" id="preview-content"></div>
+            // 如果已经有 shadowRoot，直接复用，不重新创建
+            let shadowRoot = container.shadowRoot;
+            if (!shadowRoot) {
+                shadowRoot = container.attachShadow({ mode: 'open' });
+            }
+
+            // 每次都完全覆盖，不会追加
+            shadowRoot.innerHTML = `
+        <style>
+            .comiis_postli img[smilieid] {
+                max-height: 22px;
+                margin: 1px 1px 0;
+                vertical-align: top;
+            }
+        </style>
+        <link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css?VZx" type="text/css" media="all">
+        <link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" id="comiis_app_addclass">
+        
+        <div class="comiis_postli comiis_list_readimgs nfqsqi" data-ishandlingviewimg="true">
+            <div class="comiis_messages comiis_aimg_show cl">
+                <div class="comiis_a comiis_message_table cl" id="preview-content"></div>
+            </div>
         </div>
-    <div>
-</body>
-</html>`;
-                iframe.dataset.inited = 'true';
-            }
+    `;
 
-            const contentEl = doc.getElementById('preview-content');
-            if (contentEl) {
-                contentEl.innerHTML = this.replaceText(bbcode);
-            }
+            // 覆盖式插入内容
+            const el = shadowRoot.querySelector('#preview-content');
+            if (el) el.innerHTML = html;
         }
 
         /**
@@ -355,7 +349,7 @@
         show: (bb) => instance.show(bb), // 显示预览窗
         hide: () => instance.hide(), // 隐藏
         replaceText: (text) => instance.replaceText(text), // BBCode2Html
-        renderInline: (iframe, bbcode) => instance.renderIframe(iframe, bbcode) // 内嵌iframe渲染
+        renderShadowDOM: (container, html) => instance.renderShadowDOM(container, html)
     };
 })();
 
@@ -363,8 +357,10 @@
 // 带预览窗，已自动注入css
 // BBCode2Html.show(`[size=5][align=center]教程预览[doge][#大拇指][/align][/size]`);
 
-// 更新iframe内容
-// BBCode2Html.renderInline(iframe,bbcode);
-
 // bbcode2html，需要自行配置css
 // console.log(BBCode2Html.replaceText("[b]加粗[/b] [color=red]红色[/color]"))
+
+// 更新shadowRoot内容
+// const html= BBCode2Html.replaceText("[b]加粗[/b] [color=red]红色[/color]");
+// const container =document.querySelector(div); // 选择一个空div
+// BBCode2Html.renderShadowDOM(container,html);

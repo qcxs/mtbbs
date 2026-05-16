@@ -124,6 +124,7 @@
 
         // 责任链1：class、id 匹配
         matchByClass(el) {
+            const tag = el.tagName.toLowerCase();
             const cls = el.className || '';
 
             // 本帖的隐藏内容
@@ -166,6 +167,7 @@
         // 责任链2：标签+属性
         matchByTagAndAttr(el) {
             const tag = el.tagName.toLowerCase();
+            const cls = el.className || '';
 
             if (tag === 'script') {
                 const scriptContent = el.textContent || '';
@@ -181,19 +183,11 @@
                 }
 
                 // 解析音频播放器 [audio]
-                if (scriptContent.includes('detectPlayer') && (scriptContent.includes('cn/api/163_') || scriptContent.includes('mp3_'))) {
-                    // 截取 ( 和 ) 之间的所有参数
-                    const left = scriptContent.indexOf('(');
-                    const right = scriptContent.indexOf(')', left);
-                    const paramsStr = scriptContent.substring(left + 1, right);
-
-                    // 分割所有参数
-                    const params = paramsStr.split(',').map(p => p.trim().replace(/["']/g, ''));
-
-                    // 取第三个参数（索引 2）
-                    const url = params[2] || '';
-                    if (url) {
-                        return `[audio]${url}[/audio]`;
+                if (scriptContent.includes('detectPlayer')) {
+                    const reg = /detectPlayer\([^,]+,[^,]+,\s*["']([^"']+)["']/gi
+                    const match = reg.exec(scriptContent)
+                    if (match && match[1]) {
+                        return `[audio]${match[1]}[/audio]`
                     }
                 }
 
@@ -202,7 +196,7 @@
             }
 
             // 解析音频播放器 [audio]，已在script中编写，此处过滤：“如果无法播放，请点击此处在新窗口打开”
-            if (el.id.startsWith('cn/api/163_') || el.id.startsWith('mp3_')) return '';
+            if (cls.includes('media')) return '';
 
             if (tag === 'strong' || tag === 'b') return `[b]${this.parseChildren(el)}[/b]`;
             if (tag === 'i') return `[i]${this.parseChildren(el)}[/i]`;
@@ -300,7 +294,7 @@
 
         // 责任链3：复杂匹配，为了解析一个bbcode涉及多个html
         matchByOthers(el) {
-            if (el.tagName.toLowerCase() !== 'div') return null;
+            const tag = el.tagName.toLowerCase();
             const cls = el.className || '';
 
             // 1. 引用 [quote]，引用和free格式相同，需提前解析
@@ -375,50 +369,11 @@
                 .trim()
         }
 
-        // 渲染 iframe 内容
-        renderIframe(iframe, html) {
-            if (!iframe) return;
-            const doc = iframe.contentDocument;
-
-            if (!iframe.dataset.inited) {
-                doc.documentElement.innerHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width">
-<style>
-    /* 表情大小 */
-    .comiis_postli img[smilieid] {
-        max-height: 22px;
-        margin: 1px 1px 0;
-        vertical-align: top;
-    }
-</style>
-<link rel="stylesheet" href="https://cdn-bbs.mt2.cn/template/comiis_app/comiis/css/comiis.css?VZx" type="text/css" media="all">
-<link rel="stylesheet" href="https://bbs.binmt.cc/source/plugin/comiis_app/cache/comiis_1_style.css?LOt" id="comiis_app_addclass">
-</head>
-<body>
-    <div class="comiis_postli comiis_list_readimgs nfqsqi" id="" data-ishandlingviewimg="true">
-        <div class="comiis_messages comiis_aimg_show cl">
-            <div class="comiis_a comiis_message_table cl" id="preview-content"></div>
-        </div>
-    <div>
-</body>
-</html>`;
-                iframe.dataset.inited = 'true';
-            }
-
-            const el = doc.getElementById('preview-content');
-            if (el) el.innerHTML = html;
-        }
     }
 
     const instance = new Html2BBCode();
     window.Html2BBCode = {
-        convert: (input) => instance.convert(input),
-        // 不解析html，而是直接渲染html
-        renderIframe: (iframe, html) => instance.renderIframe(iframe, html)
+        convert: (input) => instance.convert(input)
     };
 })();
 
@@ -429,6 +384,3 @@
 // 传入 HTML 字符串（自动转DOM）
 // const html = '<div class="comiis_quote bg_h f_c">...</div>';
 // console.log(Html2BBCode.convert(html));
-
-// 传入iframe、html，渲染iframe
-// Html2BBCode.renderIframe(iframe,html);
