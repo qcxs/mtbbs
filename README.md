@@ -4,7 +4,7 @@
 
 # 网站
 
-仓库开启了github page，可通过qcxs/github.io/mtbbs访问。
+仓库开启了github page，可通过qcxs.github.io/mtbbs访问。
 
 ## 当前可用URL
 
@@ -42,14 +42,16 @@
 ## 脚本
 
 有些我推荐的脚步，已在MT论坛发帖介绍，可点击下述链接查看
-[【论坛神器】一键发出几乎和大佬一样的帖子（copy.js）](https://bbs.binmt.cc/thread-154148-1-1.html)
-[【论坛脚本】论坛阅读辅助工具-自动下一页](https://bbs.binmt.cc/thread-159149-1-1.html)
-[\[油猴脚本\]消息预览+回帖查看](https://bbs.binmt.cc/thread-165883-1-1.html)
-[手机版小黑屋纯js版分享](https://bbs.binmt.cc/thread-153883-1-1.html)
-[【论坛脚本】论坛自用发帖工具js（InsertLabel_2.0.js）](https://bbs.binmt.cc/thread-154052-1-1.html)
+
+* [【论坛神器】一键发出几乎和大佬一样的帖子（copy.js）](https://bbs.binmt.cc/thread-154148-1-1.html)
+* [【论坛脚本】论坛阅读辅助工具-自动下一页](https://bbs.binmt.cc/thread-159149-1-1.html)
+* [【油猴脚本】消息预览+回帖查看](https://bbs.binmt.cc/thread-165883-1-1.html)
+* [手机版小黑屋纯js版分享](https://bbs.binmt.cc/thread-153883-1-1.html)
+* [【论坛脚本】论坛自用发帖工具js（InsertLabel_2.0.js）](https://bbs.binmt.cc/thread-154052-1-1.html)
+* [【MT论坛】移动端图片恢复功能](https://bbs.binmt.cc/thread-166955-1-1.html)
 
 ## 其它
 
 很有用，推荐阅读
-[\[研究报告\]MT论坛bbcode与html互转思路及坑](https://bbs.binmt.cc/thread-166223-1-1.html)
+[【研究报告】MT论坛bbcode与html互转思路及坑](https://bbs.binmt.cc/thread-166223-1-1.html)
 更多内容，推荐去考古[个人中心 - MT论坛](https://bbs.binmt.cc/home.php?mod=space&uid=88062&do=profile)
