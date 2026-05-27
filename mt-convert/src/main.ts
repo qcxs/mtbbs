@@ -11,7 +11,7 @@ app.use(router)
 app.use(ElementPlus)
 app.mount('#app')
 
-const win = window as Record<string, unknown>
+const win = window as unknown as Record<string, unknown>
 win.mtConvert = {
   markdownToBbcode: (text: string) => markdownToBbcodeConverter.convert(text),
   bbcodeToHtml: (text: string) => bbcodeToHtmlConverter.convert(text)

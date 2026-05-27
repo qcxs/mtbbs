@@ -7,6 +7,7 @@ declare module 'marked' {
     del: (text: string) => string
     codespan: (text: string) => string
     code: (text: string, lang: string) => string
+    br: () => string
     blockquote: (text: string) => string
     hr: () => string
     link: (href: string, title: string | null, text: string) => string
