@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MT Convert - Markdown/BBCode/HTML 转换器</title>
+    <meta name="description" content="MT Convert 转换器是一款在线论坛文本格式转换工具，支持 Markdown 转 BBCode、BBCode 转 HTML 互转，专为 MT 论坛优化，实时转换即输即得。">
+    <meta name="keywords" content="MT转换,Markdown转BBCode,BBCode转HTML,论坛格式转换,文本转换工具,在线转换器,MT论坛">
+    <meta name="author" content="青春向上">
+    <meta name="application-name" content="MT Convert 转换器">
+    <script type="module" crossorigin src="/mtbbs/mt-convert/assets/index-97xmUifi.js"></script>
+    <link rel="stylesheet" crossorigin href="/mtbbs/mt-convert/assets/index-CfVYA9j_.css">
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropZone = document.body;
+        
+        function createDropHint() {
+            const overlay = document.createElement('div');
+            overlay.className = 'drop-hint-overlay';
+            overlay.innerHTML = `
+                <div class="drop-hint-container">
+                    <div class="drop-hint-icon">📁</div>
+                    <div class="drop-hint-title">拖到此处自动上传</div>
+                    <div class="drop-hint-desc">释放文件即可自动加载内容</div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+            return overlay;
+        }
+        
+        const dropHintOverlay = createDropHint();
+        
+        let dragCounter = 0;
+        
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter++;
+            dropZone.classList.add('drag-over');
+            dropHintOverlay.classList.add('show');
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter--;
+            if (dragCounter === 0) {
+                dropZone.classList.remove('drag-over');
+                dropHintOverlay.classList.remove('show');
+            }
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            dragCounter = 0;
+            dropZone.classList.remove('drag-over');
+            dropHintOverlay.classList.remove('show');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                handleDroppedFile(file);
+            }
+        });
+        
+        window.handleDroppedFile = function(file) {
+            const validTypes = ['.md', '.txt', 'text/markdown', 'text/plain', 'text/html', '.html'];
+            const isValid = validTypes.some(type => 
+                file.name.toLowerCase().endsWith(type) || file.type === type
+            );
+            
+            if (!isValid) {
+                alert('请拖拽 .md 或 .txt 文件');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                if (content.length > 20000) {
+                    alert('文件内容超过20000字符限制，请上传更小的文件');
+                    return;
+                }
+                window.dispatchEvent(new CustomEvent('file-dropped', { 
+                    detail: { content: content }
+                }));
+            };
+            reader.readAsText(file, 'utf-8');
+        };
+    });
+    </script>
+  </body>
+</html>
