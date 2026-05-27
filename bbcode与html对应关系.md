@@ -20,11 +20,23 @@ html
 <a href="https://blog.xiaow.qzz.io" target="_blank">超链接</a>
 ````
 
+格式二
+
+````
+[url]超链接[/url]
+````
+
+html
+
+````
+<a href="超链接" target="_blank">超链接</a>
+````
+
 # 修改提示
 
 为系统自动添加
 
-````
+````html
 <i class="pstatus"> 本帖最后由 用户名 于 2026-1-15 00:12 编辑 </i>
 ````
 
@@ -36,7 +48,7 @@ html
 
 html
 
-````
+````html
 <i>内容</i>
 ````
 
@@ -48,7 +60,7 @@ html
 
 html
 
-````
+````html
 <u>内容</u>
 ````
 
@@ -62,7 +74,7 @@ html
 
 html
 
-````
+````html
 <a href="mailto:123456789@qq.com">超链接但是电子邮箱专用</a>
 ````
 
@@ -184,7 +196,7 @@ html
 ````
 
 三种情况
-无需列表\[list\]
+无序列表\[list\]
 
 ````html
 <ul><li>列表项1</li><li>列表项2</li><li>列表项3<br>
@@ -241,11 +253,22 @@ html
 [img=120,120]https://api.qrtool.cn/[/img]
 ````
 
-其中宽高可省略
 html
 
 ````html
 <img width="120" height="120" src="https://api.qrtool.cn/" border="0" alt="">
+````
+
+其中宽高可省略
+
+````
+[img]https://api.qrtool.cn/[/img]
+````
+
+html
+
+````html
+<img src="https://api.qrtool.cn/" border="0" alt="">
 ````
 
 # attachimg(图片附件)
@@ -277,8 +300,6 @@ html
 <div class="comiis_quote bg_h f_c"><blockquote>内容</blockquote></div>
 ````
 
-命中class，并解析子元素
-
 # quote
 
 使用示例
@@ -287,7 +308,7 @@ html
 [quote]内容[/quote]
 ````
 
-html，除内容外，为固定写法
+html
 
 ````html
 <div class="comiis_quote bg_h b_dashed f_c"><blockquote><font size="2">回复</font> 内容</blockquote></div>
@@ -322,8 +343,6 @@ html
 </li><li>[s]中划线[/s]<br>
 </li><li>[backcolor=green]字体背景色，与color标签一样[/backcolor]</li></ol></div></div>
 ````
-
-只需判断出此标签，通过textContent获取内容。并且代码块中标签不被解析。
 
 # attach(附件)
 
@@ -392,45 +411,26 @@ html
 解析思路，当为img且以https://cdn-bbs.mt2.cn/static/image/smiley/开头时，遍历window.smilies_type，从中可以找到剩余两个参数
 
 ````js
- // 处理表情标签
-
-        const smileyMap = new Map();
-
-        Object.keys(smilies_type).forEach(typeKey => {
-
-            const [, dir] = smilies_type[typeKey];
-
-            const typeId = typeKey.replace('_', '');
-
-            const arrays = smilies_array[typeId];
-
-            if (arrays) {
-
-                Object.keys(arrays).forEach(pageKey => {
-
-                    arrays[pageKey].forEach(item => {
-
-                        const [, tag, filename] = item;
-
-                        const fullPath = `https://cdn-bbs.mt2.cn/static/image/smiley/${dir}/${filename}`;
-
-                        smileyMap.set(fullPath, tag);
-
-                    });
-
-                });
-
-            }
-
-        });
-
-        bbcode = bbcode.replace(
-
-            /<img[^>]*src="([^"]+)"[^>]*>/gi,
-
-            (match, src) => smileyMap.get(src) || match
-
-        );
+// 处理表情标签
+const smileyMap = new Map();
+Object.keys(smilies_type).forEach(typeKey => {
+    const [, dir] = smilies_type[typeKey];
+    const typeId = typeKey.replace('_', '');
+    const arrays = smilies_array[typeId];
+    if (arrays) {
+        Object.keys(arrays).forEach(pageKey => {
+            arrays[pageKey].forEach(item => {
+                const [, tag, filename] = item;
+                const fullPath = `https://cdn-bbs.mt2.cn/static/image/smiley/${dir}/${filename}`;
+                smileyMap.set(fullPath, tag);
+            });
+        });
+    }
+});
+bbcode = bbcode.replace(
+    /<img[^>]*src="([^"]+)"[^>]*>/gi,
+    (match, src) => smileyMap.get(src) || match
+);
 ````
 
 # @朋友

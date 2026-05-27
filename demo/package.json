@@ -1,0 +1,15 @@
+{
+  "name": "demo",
+  "private": true,
+  "version": "1.0.0",
+  "description": "mtbbs 仓库多项目构建部署验证 Demo",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^5.2.8"
+  }
+}

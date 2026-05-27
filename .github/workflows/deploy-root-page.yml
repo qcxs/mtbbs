@@ -1,0 +1,30 @@
+name: Build and Deploy Root Page
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'root-page/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "root-page-deploy"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy root page to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./root-page
+          keep_files: true
