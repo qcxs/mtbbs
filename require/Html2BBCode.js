@@ -293,11 +293,12 @@
         }
 
         // 责任链3：复杂匹配，为了解析一个bbcode涉及多个html
+        // 按照quote、free、hide顺序解析，否则可能将free错误的解析为hide
         matchByOthers(el) {
             const tag = el.tagName.toLowerCase();
             const cls = el.className || '';
 
-            // 1. 引用 [quote]，引用和free格式相同，需提前解析
+            // 引用 [quote] (带 b_dashed 类的特殊格式)
             if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('b_dashed') && cls.includes('f_c')) {
                 const font = el.querySelector('font');
                 const bq = el.querySelector('blockquote');
@@ -308,7 +309,15 @@
                 }
             }
 
-            // 2. 积分隐藏 [hide=,积分]
+            // 免费内容 [free] (无 b_dashed、带 blockquote 的格式)
+            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c') && !cls.includes('b_dashed')) {
+                const bq = el.querySelector('blockquote');
+                if (bq) {
+                    return `\n[free]${this.parseChildren(bq)}[/free]\n`;
+                }
+            }
+
+            // 积分隐藏 [hide=,积分]
             if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
                 const text = el.textContent.trim();
                 const m = text.match(/以下内容需要积分高于 (\d+) 才可浏览/);
@@ -317,8 +326,8 @@
                 }
             }
 
-            // 3.1 本帖隐藏 [hide]
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
+            // 本帖隐藏 [hide]
+            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c') && !cls.includes('b_dashed')) {
                 const h2 = el.querySelector('h2');
                 if (h2?.textContent.includes('本帖隐藏的内容')) {
                     // 已由class处理
@@ -328,20 +337,20 @@
                 }
             }
 
-            // 3.2 回复可见隐藏 [hide]
+            // 回复可见隐藏 [hide]
             if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
                 const text = el.textContent.trim();
-                const a = el.querySelector('a[href*="action=reply"]');
-                if (text.includes('如果您要查看本帖隐藏内容') && a) {
+                if (text.length < 30 && text.includes('如果您要查看本帖隐藏内容')) {
                     return `\n[hide]回复可见[/hide]\n`;
                 }
             }
 
-            // 4. 免费内容 [free]
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
-                const bq = el.querySelector('blockquote');
-                if (bq) {
-                    return `\n[free]${this.parseChildren(bq)}[/free]\n`;
+            // 登录查看资源提示
+            if (cls.includes('comiis_p10') && cls.includes('bg_e') && cls.includes('f14')) {
+                const h3 = el.querySelector('h3.f_c');
+                const aLogin = el.querySelector('a[href*="action=login"]');
+                if (h3 && aLogin) {
+                    return `\n提示：你没有登录\n`;
                 }
             }
 
