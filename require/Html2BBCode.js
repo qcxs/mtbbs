@@ -1,6 +1,6 @@
 /**
  * HTML 转 BBCode 工具类（无需new，自动挂载window）
- * 责任链：class → 标签属性 → 正则 → textContent
+ * 责任链：class → 复杂 → 标签属性 → textContent
  * 支持嵌套、不递归标签、表情、attachimg、code、quote、table等
  * 支持自动识别传入 DOM 或 HTML 字符串
  */
@@ -11,6 +11,7 @@
         constructor() {
             this.noRecurseTags = new Set(['code']);
             this.smileyMap = new Map();
+            this.tipStr = [];
             // 构造时自动初始化表情数据
             this.initSmilies().then(() => {
                 this.smileyMap = this.initSmileyMap();
@@ -71,6 +72,9 @@
 
         // 支持传入 DOM 或 HTML 字符串自动识别
         convert(input) {
+            // 重置数据
+            this.tipStr = [];
+
             let rootDom;
 
             // 传入的是文本 → 转成临时 DOM
@@ -106,16 +110,16 @@
                 return classMatch;
             }
 
-            // 责任链 2：标签 + 属性匹配
-            const tagMatch = this.matchByTagAndAttr(el);
-            if (tagMatch !== null) {
-                return tagMatch;
-            }
-
-            // 责任链 3：复杂匹配
+            // 责任链 2：复杂匹配
             const regexMatch = this.matchByOthers(el);
             if (regexMatch !== null) {
                 return regexMatch;
+            }
+
+            // 责任链 3：标签 + 属性匹配
+            const tagMatch = this.matchByTagAndAttr(el);
+            if (tagMatch !== null) {
+                return tagMatch;
             }
 
             // 兜底：递归子节点
@@ -127,7 +131,7 @@
             const tag = el.tagName.toLowerCase();
             const cls = el.className || '';
 
-            // 本帖的隐藏内容
+            // “本帖的隐藏内容”文字
             if (cls.includes('f_a')) return '';
 
             if (cls.includes('pstatus')) {
@@ -138,33 +142,178 @@
                     const author = match[1].trim(); // 作者
                     const time = match[2].trim();  // 时间
                     // 格式化输出
-                    return `作者: ${author}，修改时间：${time}\n`;
+                    this.tipStr.push(`作者: ${author}，修改时间：${time}`);
+                    return `\n作者: ${author}，修改时间：${time}\n`;
                 }
-                return '';
+                return ''
             }
 
+            // 帖子信息
             if (cls.includes('comiis_modact')) {
                 const text = el.textContent.trim();
                 if (text.includes('精华'))
-                    return '[精华帖]';
+                    this.tipStr.push('[精华帖]');
                 if (text.includes('高亮'))
-                    return '[高亮帖]';
+                    this.tipStr.push('[高亮帖]');
                 return '';
             }
 
-            if (cls.includes('comiis_blockcode')) {
+            // 代码块
+            if (cls === 'comiis_blockcode comiis_bodybg b_ok f_b') {
                 const text = el.textContent.trim();
                 return `\n[code]${text}[/code]\n`;
             }
 
-            if (cls.includes('comiis_attach')) {
-                return '\n[attach]附件[/attach]\n';
+            // 抢楼帖
+            if (cls === 'comiis_quote comiis_qianglou bg_h') {
+                const text = el.textContent.trim();
+                this.tipStr.push('[抢楼帖]')
+                return ``;
+            }
+
+            // 付费帖（未付费）
+            if (cls === 'comiis_quote bg_h') {
+                const text = el.textContent.trim();
+                this.tipStr.push('你没有付费，解析不全')
+                return `你没有付费，解析不全`;
+            }
+
+            // 密码帖（没有输入密码）
+            if (cls === 'comiis_postpw bg_h') {
+                const text = el.textContent.trim();
+                if (text.includes('本帖为密码帖 ，请输入密码继续访问!')) {
+                    this.tipStr.push('[密码帖]请输入密码后重新解析')
+                    return ``;
+                }
             }
 
             return null;
         }
 
-        // 责任链2：标签+属性
+        // 责任链2：复杂匹配，为了解析一个bbcode涉及多个html
+        // 按照从小到大的顺序解析
+        matchByOthers(el) {
+            const tag = el.tagName.toLowerCase();
+            const cls = el.className || '';
+
+            // 图片附件
+            if (cls === 'comiis_postimg vm') {
+                const img = el.querySelector('img')
+                if (img) {
+                    // 提取纯数字
+                    const id = img.id.replace(/\D/g, '');
+                    const src = img.src;
+                    this.tipStr.push(`图片附件id：${id}`)
+                    return `[img]${src}[/img]`
+                }
+            }
+
+            // 附件
+            if (cls === 'comiis_attach bg_e b_ok cl') {
+                const title = el.querySelector('.attach_tit .f_ok')?.textContent.trim();
+                const time = el.querySelector('.attach_tit .f_d')?.textContent.trim().replace(/\u00A0/g, ' ');
+                const info = el.querySelector('.attach_size')?.textContent.trim();
+                const href = el.querySelector('a')?.href || '';
+
+                const data = {
+                    fileName: title,
+                    uploadTime: time,
+                    fileInfo: info,
+                    downloadLink: href
+                };
+
+                this.tipStr.push(`帖子包含附件，信息：${JSON.stringify(data)}`)
+                return `\n[attach]附件[/attach]\n`;
+            }
+
+            // 引用 [quote] (带 b_dashed 类的特殊格式)
+            if (cls === 'comiis_quote bg_h b_dashed f_c') {
+                const font = el.querySelector('font');
+                const bq = el.querySelector('blockquote');
+                if (font?.textContent.startsWith('回复') && bq) {
+                    // 删除子节点的：[size=2]回复[/size] + 后面所有空白/不可见字符
+                    const content = this.parseChildren(bq).replace(/^\[size=2\]回复\[\/size\]\s*/, '').trim();
+                    return `\n[quote]${content}[/quote]\n`;
+                }
+            }
+
+            // 隐藏（已回复） [hide]
+            if (cls === 'comiis_quote bg_h f_c') {
+                const text = el.textContent.trim();
+                const h2 = el.querySelector('h2');
+                if (h2?.textContent.includes('本帖隐藏的内容')) {
+                    // const content = this.parseChildren(el).replace(/^本帖隐藏的内容:/, '').trim();// 已由class处理
+                    const content = this.parseChildren(el);
+                    return `\n[hide]${content}[/hide]\n`;
+                }
+
+            }
+
+            // 隐藏（积分不够） [hide=,积分]
+            if (cls === 'comiis_quote bg_h f_c') {
+                const text = el.textContent.trim();
+                const jifen = text.match(/需要积分高于 (\d+) 才可浏览/);// 有此文字为规则
+                if (jifen) {
+                    // 这个地方很特殊，不是包裹情况，没必要获取text、解析子元素
+                    if (text.includes('您当前积分为')) {
+                        // 积分不够
+                        return `\n[hide=,${jifen[1]}]你的积分不够，无法浏览[/hide]\n`
+                    } else {
+                        // 积分足够，或者是发帖人、管理员
+                        return ''
+                    }
+                }
+            }
+
+            // 隐藏（未回复） [hide]
+            if (cls === 'comiis_quote bg_h f_c') {
+                const text = el.textContent.trim();
+                if (text.length < 30 && text.includes('如果您要查看本帖隐藏内容')) {
+                    this.tipStr.push('你没有回复，解析不全')
+                    return `\n[hide]你没有回复，无法查看[/hide]\n`;
+                }
+            }
+
+            // 免费内容 [free]
+            if (cls === 'comiis_quote bg_h f_c') {
+                const text = el.textContent.trim();
+                const bq = el.querySelector('blockquote');
+                if (bq) {
+                    return `\n[free]${this.parseChildren(bq)}[/free]\n`;
+                }
+            }
+
+            // 消息被屏蔽
+            if (cls === 'comiis_quote bg_h f_c') {
+                const text = el.textContent.trim();
+                const em = el.querySelector('em');
+                if (em) {
+                    this.tipStr.push('该帖被屏蔽')
+                    return `\n${text}\n`;
+                }
+            }
+
+            // 其他，例如：仅作者可见
+            // 实际不是free标签，只是它的样式最像
+            if (cls === 'comiis_quote bg_h f_c') {
+                const text = el.textContent.trim();
+                return `\n[free]${text}[free]\n`;
+            }
+
+            // 登录查看资源提示
+            if (cls === 'comiis_p10 bg_e f14') {
+                const h3 = el.querySelector('h3.f_c');
+                const aLogin = el.querySelector('a[href*="action=login"]');
+                if (h3 && aLogin) {
+                    this.tipStr.push(`提示：你没有登录`)
+                    return ''
+                }
+            }
+
+            return null;
+        }
+
+        // 责任链3：标签+属性
         matchByTagAndAttr(el) {
             const tag = el.tagName.toLowerCase();
             const cls = el.className || '';
@@ -189,6 +338,11 @@
                     if (match && match[1]) {
                         return `[audio]${match[1]}[/audio]`
                     }
+                }
+
+                if (scriptContent.includes('AC_FL_RunContent')) {
+                    this.tipStr.push('帖子含有flash，请去支持flash的浏览器中查看')
+                    return ''
                 }
 
                 // 其他script标签
@@ -292,71 +446,6 @@
             return null;
         }
 
-        // 责任链3：复杂匹配，为了解析一个bbcode涉及多个html
-        // 按照quote、free、hide顺序解析，否则可能将free错误的解析为hide
-        matchByOthers(el) {
-            const tag = el.tagName.toLowerCase();
-            const cls = el.className || '';
-
-            // 引用 [quote] (带 b_dashed 类的特殊格式)
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('b_dashed') && cls.includes('f_c')) {
-                const font = el.querySelector('font');
-                const bq = el.querySelector('blockquote');
-                if (font?.textContent.startsWith('回复') && bq) {
-                    // 删除子节点的：[size=2]回复[/size] + 后面所有空白/不可见字符
-                    const content = this.parseChildren(bq).replace(/^\[size=2\]回复\[\/size\]\s*/, '').trim();
-                    return `\n[quote]${content}[/quote]\n`;
-                }
-            }
-
-            // 免费内容 [free] (无 b_dashed、带 blockquote 的格式)
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c') && !cls.includes('b_dashed')) {
-                const bq = el.querySelector('blockquote');
-                if (bq) {
-                    return `\n[free]${this.parseChildren(bq)}[/free]\n`;
-                }
-            }
-
-            // 积分隐藏 [hide=,积分]
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
-                const text = el.textContent.trim();
-                const m = text.match(/以下内容需要积分高于 (\d+) 才可浏览/);
-                if (m) {
-                    return `\n[hide=,${m[1]}][/hide]\n`;
-                }
-            }
-
-            // 本帖隐藏 [hide]
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c') && !cls.includes('b_dashed')) {
-                const h2 = el.querySelector('h2');
-                if (h2?.textContent.includes('本帖隐藏的内容')) {
-                    // 已由class处理
-                    // const content = this.parseChildren(el).replace(/^本帖隐藏的内容:/, '').trim();
-                    const content = this.parseChildren(el);
-                    return `\n[hide]${content}[/hide]\n`;
-                }
-            }
-
-            // 回复可见隐藏 [hide]
-            if (cls.includes('comiis_quote') && cls.includes('bg_h') && cls.includes('f_c')) {
-                const text = el.textContent.trim();
-                if (text.length < 30 && text.includes('如果您要查看本帖隐藏内容')) {
-                    return `\n[hide]回复可见[/hide]\n`;
-                }
-            }
-
-            // 登录查看资源提示
-            if (cls.includes('comiis_p10') && cls.includes('bg_e') && cls.includes('f14')) {
-                const h3 = el.querySelector('h3.f_c');
-                const aLogin = el.querySelector('a[href*="action=login"]');
-                if (h3 && aLogin) {
-                    return `\n提示：你没有登录\n`;
-                }
-            }
-
-            return null;
-        }
-
         // 递归子节点
         parseChildren(el) {
             const tag = el.tagName?.toLowerCase();
@@ -372,6 +461,10 @@
         }
 
         formatBBCode(text) {
+            // 去重
+            const uniqueArr = [...new Set(this.tipStr)];
+            console.log(uniqueArr.join('\n'))
+
             return text
                 .replace(/\n{2,}/g, '\n')
                 .replace(/[ \t]+/g, ' ')
