@@ -1,5 +1,6 @@
 // ==UserScript==
-// @name         [MT论坛]移动端图片恢复
+// @name         restoreImages
+// @name:zh-CN   [MT论坛]移动端图片恢复
 // @namespace    https://github.com/qcxs/mtbbs
 // @version      1.0
 // @description  为MT论坛移动端添加图片恢复功能
@@ -10,6 +11,7 @@
 // @run-at       document-idle
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
+// @license      MIT
 // ==/UserScript==
 
 (function() {

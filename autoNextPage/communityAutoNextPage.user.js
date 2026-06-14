@@ -1,54 +1,68 @@
 // ==UserScript==
-// @name         [MT论坛]自动下一页 by：青春向上
+// @name         communityAutoNextPage
+// @name:zh-CN   [MT论坛]自动下一页
 // @namespace    https://github.com/qcxs/mtbbs
-// @version      2025-11-22
-// @description  集众多页面为一体，统一使用page参数控制分页。滚动加载下一页，手动加载上一页，页码跳转，地址栏无刷新更新。已适配：社区、导读、搜索、个人空间帖子/回复/留言、帖子评论、我的好友、积分明细、消息提醒。
+// @version      2026-06-15
+// @description  集众多页面为一体，统一使用page参数控制分页。滚动加载下一页，手动加载上一页，页码跳转，地址栏无刷新更新。已适配：社区、导读、搜索、个人空间帖子/回复/留言、帖子评论、我的好友、积分明细、消息提醒等。
 // @author       青春向上
 // @match        *://bbs.binmt.cc/forum-*.html*
 // @match        *://bbs.binmt.cc/forum.php?*fid=*
+// @match        *://bbs.binmt.cc/forum.php?*tid=*
 // @match        *://bbs.binmt.cc/forum.php?*mod=guide*
 // @match        *://bbs.binmt.cc/search.php?*searchid=*
-// @match        *://bbs.binmt.cc/home.php?*do=thread*
-// @match        *://bbs.binmt.cc/forum.php?*tid=*
+// @match        *://bbs.binmt.cc/group.php?*
 // @match        *://bbs.binmt.cc/*thread-*.html*
-// @match        *://bbs.binmt.cc/home.php?*do=friend*
+// @match        *://bbs.binmt.cc/home.php?*ac=credit*
+// @match        *://bbs.binmt.cc/home.php?*ac=friend*
+// @match        *://bbs.binmt.cc/home.php?*do=album*
+// @match        *://bbs.binmt.cc/home.php?*do=blog*
+// @match        *://bbs.binmt.cc/home.php?*do=doing*
 // @match        *://bbs.binmt.cc/home.php?*do=favorite*
 // @match        *://bbs.binmt.cc/home.php?*do=following*
 // @match        *://bbs.binmt.cc/home.php?*do=follower*
-// @match        *://bbs.binmt.cc/home.php?*do=wall*
+// @match        *://bbs.binmt.cc/home.php?*do=friend*
 // @match        *://bbs.binmt.cc/home.php?*do=notice*
+// @match        *://bbs.binmt.cc/home.php?*do=thread*
+// @match        *://bbs.binmt.cc/home.php?*do=wall*
+// @match        *://bbs.binmt.cc/home.php?*view=blacklist*
 // @match        *://bbs.binmt.cc/home.php?*view=visitor*
 // @match        *://bbs.binmt.cc/home.php?*view=trace*
-// @match        *://bbs.binmt.cc/home.php?*ac=friend*
-// @match        *://bbs.binmt.cc/home.php?*ac=credit*
-// @match        *://bbs.binmt.cc/home.php?*view=blacklist*
 // @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
 // @run-at       document-end
+// @license      MIT
 // ==/UserScript==
 
 (function () {
     'use strict';
     const ENUM = {
-        //帖子列表
-        postListSelector: '.comiis_forumlist>ul',
-        //评论列表
+        // 相册
+        albumSelector: '.comiis_album_list>ul',
+        // 日志
+        blogSelector: '.comiis_bloglist>ul',
+        // 评论列表
         commentListSelector: '.comiis_postlist',
-        //好友列表
-        friendsListSelector: '.comiis_userlist01',
-        //留言列表
-        leaveMessageListSelector: '.comiis_plli',
-        //积分明细
-        integralListSelector: '.comiis_credits_log>ul',
-        //通知列表
-        noticeSelector: '.comiis_notice_list>ul',
-        //我的收藏
+        // 心情墙
+        doingSelector: '.comiis_allpl>ul',
+        // 我的收藏
         favoriteSelector: '.comiis_mysclist>ul',
-        //当无法从页码选择器中获取总页码时，取最大，会自动根据响应数据判断是否还有下一页
+        // 好友列表
+        friendsListSelector: '.comiis_userlist01',
+        // 圈子
+        groupSelector: '.comiis_xznlist.comiis_xhdlist>ul',
+        // 积分明细
+        integralListSelector: '.comiis_credits_log>ul',
+        // 留言列表
+        leaveMessageListSelector: '.comiis_plli',
+        // 通知列表
+        noticeSelector: '.comiis_notice_list>ul',
+        // 帖子列表
+        postListSelector: '.comiis_forumlist>ul',
+        // 当无法从页码选择器中获取总页码时，取最大，会自动根据响应数据判断是否还有下一页
         unknownPage: 999,
-        //距离页面底部多少时，加载下一页，单位：像素
-        loadThreshold: 1500,
-        //请求超时时间，3秒
+        // 距离页面底部多少时，加载下一页，单位：像素
+        loadThreshold: 1000,
+        // 请求超时时间，3秒
         requestTimeout: 3000,
     }
     const $ = window.jQuery;
@@ -71,48 +85,66 @@
         const url = new URL(window.location.href);
         const splitSegments = url.pathname.split('-');
         let mode = '';
-        if (url.searchParams.get('fid') || splitSegments.length === 3 && splitSegments[0].endsWith('forum')) {
-            // 情况1：社区，eg：forum-2-1.html
+        if (url.searchParams.get('moblie') === 'no') {
+            // 非手机页面，跳过后续所有匹配
+        } else if (url.searchParams.get('fid') || splitSegments.length === 3 && splitSegments[0].endsWith('forum')) {
+            // 社区，eg：forum-2-1.html
             mode = 'forum'
             listSelector = ENUM.postListSelector
         } else if (url.searchParams.get('mod') === 'guide') {
-            // 情况2：导读
+            // 导读
             mode = 'guide';
             listSelector = ENUM.postListSelector
         } else if (url.pathname === '/search.php') {
-            // 情况3：搜索
+            // 搜索
             mode = 'search';
             listSelector = ENUM.postListSelector
         } else if (url.searchParams.get('do') === 'thread') {
-            // 情况4：个人空间
+            // 个人空间
             mode = 'home';
             listSelector = ENUM.postListSelector
         } else if (url.searchParams.get('tid') || splitSegments.length === 4 && splitSegments[0].endsWith('thread')) {
-            // 情况5：帖子评论，eg：thread-156601-1-1.html
+            // 帖子评论，eg：thread-156601-1-1.html
             mode = 'thread';
             listSelector = ENUM.commentListSelector;
         } else if (url.searchParams.get('do') === 'friend' || url.searchParams.get('do') === 'following' || url.searchParams.get('do') === 'follower' ||
             url.searchParams.get('view') === 'visitor' || url.searchParams.get('view') === 'trace' || url.searchParams.get('view') === 'blacklist' ||
             url.searchParams.get('ac') === 'friend') {
-            // 情况6：我的好友
+            // 我的好友
             mode = 'friends';
             listSelector = ENUM.friendsListSelector
         } else if (url.searchParams.get('do') === 'wall') {
-            // 情况7：个人空间-留言
+            // 个人空间-留言
             mode = 'leaveMessage';
             listSelector = ENUM.leaveMessageListSelector
         } else if (url.searchParams.get('ac') === 'credit') {
-            // 情况8：积分明细
+            // 积分明细
             mode = 'integral';
             listSelector = ENUM.integralListSelector
         } else if (url.searchParams.get('do') === 'notice') {
-            // 情况9：消息提醒
+            // 消息提醒
             mode = 'notice';
             listSelector = ENUM.noticeSelector
         } else if (url.searchParams.get('do') === 'favorite') {
-            // 情况10：我的收藏
+            // 我的收藏
             mode = 'favorite';
             listSelector = ENUM.favoriteSelector
+        } else if (url.searchParams.get('do') === 'album') {
+            // 相册，eg：/home.php?mod=space&do=album&view=all
+            mode = 'album';
+            listSelector = ENUM.albumSelector
+        } else if (url.searchParams.get('do') === 'doing') {
+            // 心情墙，eg：/home.php?mod=space&do=doing&view=all
+            mode = 'doing';
+            listSelector = ENUM.doingSelector
+        } else if (url.searchParams.get('do') === 'blog') {
+            // 日志，eg：/home.php?mod=space&do=blog&view=all
+            mode = 'blog';
+            listSelector = ENUM.blogSelector
+        } else if (url.pathname === '/group.php') {
+            // 圈子，eg：/group.php
+            mode = 'group';
+            listSelector = ENUM.groupSelector
         }
         console.log(`模式：${mode || '未找到'}`);
         return { mode, listSelector };
@@ -171,6 +203,22 @@
                 }
             });
             console.log('阻止默认局部刷新')
+        } else if (listSelector == ENUM.commentListSelector) {
+            // 帖子评论页面，当回复评论后，停止加载下一页
+            const target = document.querySelector('#post_new');
+            // 配置观察项：监听子节点
+            const config = { childList: true, characterData: true, subtree: true };;
+            // 创建观察器
+            const observer = new MutationObserver(function (mutations) {
+                if (currentPage < totalPage && totalPage !== ENUM.unknownPage) {
+                    isFailed = true;
+                    addPageMarker({ pageNum: currentPage + 1, errorObject: '你刚回复了内容，停止加载下一页' });
+                } else {
+                    observer.disconnect();
+                }
+            });
+            // 开始监听
+            observer.observe(target, config);
         }
 
     }

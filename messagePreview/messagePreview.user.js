@@ -1,5 +1,6 @@
 // ==UserScript==
-// @name         [MT论坛]消息提醒预览
+// @name         messagePreview
+// @name:zh-CN   [MT论坛]消息提醒预览
 // @namespace    https://github.com/qcxs/mtbbs
 // @version      2026-05-16
 // @description  消息预览：避免查看回复频繁跳转网页，帖子回复查看：查看当前用户对某帖的回复
@@ -9,6 +10,7 @@
 // @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
 // @run-at       document-idline
+// @license      MIT
 // ==/UserScript==
 
 (async function () {

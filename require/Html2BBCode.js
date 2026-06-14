@@ -283,13 +283,13 @@
                 }
             }
 
-            // 消息被屏蔽
+            // 消息被屏蔽，非free标签，只是样式相似
             if (cls === 'comiis_quote bg_h f_c') {
                 const text = el.textContent.trim();
                 const em = el.querySelector('em');
                 if (em) {
                     this.tipStr.push('该帖被屏蔽')
-                    return `\n${text}\n`;
+                    return `\n[free]${text}[/free]\n`;
                 }
             }
 

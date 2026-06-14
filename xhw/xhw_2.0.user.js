@@ -1,5 +1,6 @@
 // ==UserScript==
-// @name         [MT论坛]手机版小黑屋 by：青春向上
+// @name         xhw
+// @name:zh-CN   [MT论坛]手机版小黑屋 by：青春向上
 // @namespace    https://github.com/qcxs/mtbbs
 // @version      2025-12-10
 // @description  移动端的小黑屋，在网页侧边栏添加打开按钮
@@ -7,6 +8,7 @@
 // @match        *://bbs.binmt.cc/*
 // @icon         https://bbs.binmt.cc/favicon.ico
 // @grant        none
+// @license      MIT
 // ==/UserScript==
 
 (function () {
