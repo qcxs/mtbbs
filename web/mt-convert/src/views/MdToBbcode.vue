@@ -38,10 +38,10 @@
           <el-input
             v-model="mdText"
             type="textarea"
-            :rows="18"
+            :rows="TEXTAREA_ROWS"
             placeholder="在此输入 Markdown 文本..."
             @input="handleInput"
-            :maxlength="20000"
+            :maxlength="MAX_INPUT_LENGTH"
             show-word-limit
             class="converter-input"
           />
@@ -87,7 +87,7 @@
       <el-input
         v-model="bbcodeText"
         type="textarea"
-        :rows="15"
+        :rows="DIALOG_TEXTAREA_ROWS"
         readonly
         class="bbcode-dialog-input"
       />
@@ -111,6 +111,7 @@ import { markdownToBbcodeConverter } from '@/utils'
 import { bbcodeToHtmlConverter } from '@/utils'
 import { useInputCache } from '@/utils/useInputCache'
 import { loadSettings } from '@/utils/converterSettings'
+import { MAX_INPUT_LENGTH, TEXTAREA_ROWS, DIALOG_TEXTAREA_ROWS, CONVERT_DEBOUNCE_MS } from '@/utils/constants'
 import { pageHasSettings, openPageSettings, openPageOutputSettings } from '@/utils/settingsState'
 import SettingsDialog from '@/components/SettingsDialog.vue'
 import OutputSettingsDialog from '@/components/OutputSettingsDialog.vue'
@@ -131,14 +132,11 @@ const handleInput = () => {
     clearTimeout(convertTimeout)
   }
   convertTimeout = setTimeout(() => {
-    if (mdText.value !== mdText.value.trim()) {
-      mdText.value = mdText.value.trim()
-    }
-    bbcodeText.value = mdText.value ? markdownToBbcodeConverter.convert(mdText.value) : ''
+    bbcodeText.value = mdText.value ? markdownToBbcodeConverter.convert(mdText.value.trim()) : ''
     nextTick(() => {
       updatePreview()
     })
-  }, 300)
+  }, CONVERT_DEBOUNCE_MS)
 }
 
 const updatePreview = () => {
@@ -231,8 +229,8 @@ const clearInput = () => {
 
 const handleFileDrop = (content: string) => {
   const trimmed = content.trim()
-  if (trimmed.length > 20000) {
-    ElMessage.error('文件内容超过20000字符限制，请上传更小的文件')
+  if (trimmed.length > MAX_INPUT_LENGTH) {
+    ElMessage.error(`文件内容超过${MAX_INPUT_LENGTH}字符限制，请上传更小的文件`)
     return
   }
   mdText.value = trimmed
@@ -251,7 +249,7 @@ const refreshPreview = () => {
   if (convertTimeout) {
     clearTimeout(convertTimeout)
   }
-  bbcodeText.value = mdText.value ? markdownToBbcodeConverter.convert(mdText.value) : ''
+  bbcodeText.value = mdText.value ? markdownToBbcodeConverter.convert(mdText.value.trim()) : ''
   nextTick(() => {
     updatePreview()
   })

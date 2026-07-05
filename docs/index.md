@@ -4,7 +4,7 @@
 
 初始只是个人为 [Alook 浏览器](https://www.alookweb.com/) 编写一些脚本，存放在 123 盘中。经历了不断优化，有三种脚本成功入围 [编程开发 - MT论坛](https://bbs.binmt.cc/forum.php?mod=forumdisplay&fid=42&filter=digest&digest=1) 精华帖，现将脚本源码统一整理，存储在此仓库中，随缘更新。
 
-PS：由于Alook佛系更新，转至雨见浏览器，支持插件，随新脚本不只是纯js，开始拥抱油猴API。
+PS：由于Alook佛系更新，转至[雨见浏览器](https://www.yjllq.com/)，支持插件，故新脚本不再是纯js，开始拥抱油猴API。
 
 
 ## 脚本使用方法
@@ -21,7 +21,7 @@ PS：由于Alook佛系更新，转至雨见浏览器，支持插件，随新脚�
 
 在仓库中找到以 `user.js` 结尾的文件，它就是脚本。
 
-![在仓库中查找 user.js 文件](/images/index/Pasted%20image%2020260104130930.png)
+![在仓库中查找 user.js 文件](/images/index/image-20260705110456068.png)
 
 点击 **Raw**，油猴自动识别。
 
@@ -33,7 +33,7 @@ PS：由于Alook佛系更新，转至雨见浏览器，支持插件，随新脚�
 
 [https://cdn.jsdelivr.net/gh/qcxs/mtbbs/](https://cdn.jsdelivr.net/gh/qcxs/mtbbs/)
 
-![jsDelivr CDN](/images/index/Pasted%20image%2020260104131138.png)
+![jsDelivr CDN](/images/index/image-20260705110815029.png)
 
 不过由于缓存，需等待一段时间才能获取到最新版本。
 

@@ -38,10 +38,10 @@
           <el-input
             v-model="bbcodeText"
             type="textarea"
-            :rows="18"
+            :rows="TEXTAREA_ROWS"
             placeholder="在此输入 BBCode 文本..."
             @input="convert"
-            :maxlength="20000"
+            :maxlength="MAX_INPUT_LENGTH"
             show-word-limit
             class="converter-input"
           />
@@ -84,6 +84,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { bbcodeToHtmlConverter } from '@/utils'
 import { useInputCache } from '@/utils/useInputCache'
+import { MAX_INPUT_LENGTH, TEXTAREA_ROWS } from '@/utils/constants'
 
 const bbcodeText = ref('')
 const previewRef = ref<HTMLElement | null>(null)
@@ -91,13 +92,11 @@ const fileInput = ref<HTMLInputElement | null>(null)
 const cache = useInputCache()
 
 const convert = () => {
-  if (bbcodeText.value !== bbcodeText.value.trim()) {
-    bbcodeText.value = bbcodeText.value.trim()
-  }
   cache.save(bbcodeText.value)
   if (!previewRef.value) return
   
-  if (!bbcodeText.value) {
+  const trimmed = bbcodeText.value.trim()
+  if (!trimmed) {
     if (previewRef.value.shadowRoot) {
       const el = previewRef.value.shadowRoot.querySelector('#preview-content')
       if (el) {
@@ -109,7 +108,7 @@ const convert = () => {
     return
   }
   
-  const html = bbcodeToHtmlConverter.convert(bbcodeText.value)
+  const html = bbcodeToHtmlConverter.convert(trimmed)
   renderShadowDOM(previewRef.value, html)
 }
 
@@ -178,8 +177,8 @@ const clearInput = () => {
 
 const handleFileContent = (content: string) => {
   const trimmed = content.trim()
-  if (trimmed.length > 20000) {
-    ElMessage.error('文件内容超过20000字符限制，请上传更小的文件')
+  if (trimmed.length > MAX_INPUT_LENGTH) {
+    ElMessage.error(`文件内容超过${MAX_INPUT_LENGTH}字符限制，请上传更小的文件`)
     return
   }
   bbcodeText.value = trimmed

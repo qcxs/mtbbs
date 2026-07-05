@@ -1,5 +1,6 @@
 import { marked, Renderer } from 'marked'
 import { type ConverterSettings, loadSettings, renderTemplate, removeEmoji, DEFAULT_SETTINGS } from '@/utils/converterSettings'
+import { MAX_HEADING_LEVEL, HEADING_BASE_SIZE } from '@/utils/constants'
 
 const HTML_ENTITIES: Record<string, string> = {
   '&lt;': '<', '&gt;': '>', '&amp;': '&', '&quot;': '"', '&#39;': "'"
@@ -12,7 +13,7 @@ function unescapeHtml(text: string): string {
 export class MarkdownToBbcodeConverter {
   private renderer: Renderer
   private settings: ConverterSettings
-  private headingCounters: number[] = [0, 0, 0]
+  private headingCounters: number[] = Array(MAX_HEADING_LEVEL).fill(0)
 
   constructor(settings?: ConverterSettings) {
     this.settings = settings || loadSettings()
@@ -26,7 +27,7 @@ export class MarkdownToBbcodeConverter {
   }
 
   private resetCounters(level: number): void {
-    for (let i = level; i < 3; i++) {
+    for (let i = level; i < MAX_HEADING_LEVEL; i++) {
       this.headingCounters[i] = 0
     }
   }
@@ -45,11 +46,11 @@ export class MarkdownToBbcodeConverter {
     this.renderer.heading = (text: string, level: number) => {
       let displayText = text
       if (s.autoNumbering) {
-        const num = this.getHeadingNumber(Math.min(level, 3))
+        const num = this.getHeadingNumber(Math.min(level, MAX_HEADING_LEVEL))
         displayText = `${num} ${text}`
       }
-      const clampedLevel = Math.min(level, 3)
-      const size = String(4 - clampedLevel)
+      const clampedLevel = Math.min(level, MAX_HEADING_LEVEL)
+      const size = String(HEADING_BASE_SIZE - clampedLevel)
       const key = `heading${clampedLevel}` as keyof ConverterSettings
       const tmpl = (s[key] as string) || DEFAULT_SETTINGS[key] as string
       return renderTemplate(tmpl, { text: displayText, level: String(level), size }) + '\n'
@@ -117,7 +118,7 @@ export class MarkdownToBbcodeConverter {
 
     let input = markdown.trim()
 
-    this.headingCounters = [0, 0, 0]
+    this.headingCounters = Array(MAX_HEADING_LEVEL).fill(0)
 
     if (this.settings.removeEmoji) {
       input = removeEmoji(input)
