@@ -9,21 +9,16 @@ export default defineConfig({
   lastUpdated: true,
 
   themeConfig: {
-    logo: false,
-
     nav: [
       { text: '首页', link: '/' },
       { text: 'github', link: 'https://github.com/qcxs/mtbbs' },
-      { text: 'MT Convert', link: '/mt-convert/' },
+      // 在新窗口打开 MT Convert，避免被vitepress拦截，导致404
+      { text: 'MT Convert', link: 'https://qcxs.github.io/mtbbs/mt-convert/', target: '_blank' },
+      { text: '论坛账号', link: 'https://bbs.binmt.cc/home.php?mod=space&uid=88062&do=profile', target: '_blank' },
     ],
 
     sidebar: [
-      {
-        text: '首页',
-        items: [
-          { text: '项目介绍', link: '/' },
-        ],
-      },
+      { text: '首页', link: '/', },
       {
         text: '油猴脚本',
         items: [
@@ -37,7 +32,7 @@ export default defineConfig({
         ],
       },
       {
-        text: '工具',
+        text: '网页工具',
         items: [
           { text: 'MT Convert', link: '/tools/mt-convert' },
         ],
