@@ -1,10 +1,12 @@
+# 发帖辅助工具
+
 # 帖子
 
 [【论坛脚本】论坛自用发帖工具js（InsertLabel_2.0.js）](https://bbs.binmt.cc/thread-154052-1-1.html)
 
 # 页面
 
-![attachments/Pasted image 20260104104050.png](attachments/Pasted%20image%2020260104104050.png)
+![attachments/Pasted image 20260104104050.png](/images/InsertLabel/Pasted%20image%2020260104104050.png)
 脚本会自动寻找网页中textarea元素，在其之后添加一横排按钮。
 
 # 功能
@@ -16,15 +18,15 @@
 ### 使用方法
 
 选中一段文字，点击S，则会使用S标签将选中的内容包裹
-![attachments/Pasted image 20260104105047.png](attachments/Pasted%20image%2020260104105047.png)
+![attachments/Pasted image 20260104105047.png](/images/InsertLabel/Pasted%20image%2020260104105047.png)
 或者未选中时，手动输入内容
-![attachments/Pasted image 20260104105229.png](attachments/Pasted%20image%2020260104105229.png)
-![attachments/Pasted image 20260104105246.png](attachments/Pasted%20image%2020260104105246.png)
+![attachments/Pasted image 20260104105229.png](/images/InsertLabel/Pasted%20image%2020260104105229.png)
+![attachments/Pasted image 20260104105246.png](/images/InsertLabel/Pasted%20image%2020260104105246.png)
 注意url插入时有两种情况，如果只是插入链接，只输入第一个文本框即可。如果想显示文字，则上输入文字，下输入链接。
 
 ## 插图
 
-![attachments/Pasted image 20260104105732.png](attachments/Pasted%20image%2020260104105732.png)
+![attachments/Pasted image 20260104105732.png](/images/InsertLabel/Pasted%20image%2020260104105732.png)
 本质上只是优化页面显示，如果你的图片不符合论坛要求，或遇见论坛bug，仍无法上传使用。
 
 ### 简要介绍
@@ -39,16 +41,16 @@
 ## 预览
 
 有一点小bug，可以预览发帖后效果
-![attachments/Pasted image 20260104111125.png](attachments/Pasted%20image%2020260104111125.png)
+![attachments/Pasted image 20260104111125.png](/images/InsertLabel/Pasted%20image%2020260104111125.png)
 
 ## 常用语
 
-![attachments/Pasted image 20260104111530.png](attachments/Pasted%20image%2020260104111530.png)
+![attachments/Pasted image 20260104111530.png](/images/InsertLabel/Pasted%20image%2020260104111530.png)
 备注用于列表显示，使用场景：你有一串非常好看的**感谢分享**代码，将其添加至常用语中，下次快捷插入
 
 ## 彩虹字体
 
-![attachments/Pasted image 20260104111725.png](attachments/Pasted%20image%2020260104111725.png)
+![attachments/Pasted image 20260104111725.png](/images/InsertLabel/Pasted%20image%2020260104111725.png)
 填写文字，拖动生成。
 
 ### 使用技巧
@@ -69,9 +71,9 @@
 
 ## 更多
 
-![attachments/Pasted image 20260104112713.png](attachments/Pasted%20image%2020260104112713.png)
+![attachments/Pasted image 20260104112713.png](/images/InsertLabel/Pasted%20image%2020260104112713.png)
 显示代码中隐藏的标签
-![attachments/Pasted image 20260104112108.png](attachments/Pasted%20image%2020260104112108.png)
+![attachments/Pasted image 20260104112108.png](/images/InsertLabel/Pasted%20image%2020260104112108.png)
 每个人常用的功能、标签不一样，将自己不常用的功能隐藏，在更多中显示。
 
 ## 小工具
@@ -83,16 +85,16 @@
 ### 选择
 
 可以选择中括号包裹的内容，例如
-![attachments/Pasted image 20260104110859.png](attachments/Pasted%20image%2020260104110859.png)
+![attachments/Pasted image 20260104110859.png](/images/InsertLabel/Pasted%20image%2020260104110859.png)
 光标在数字之间，点击选择将选中整个标签，方便后续操作。
 
 ### 阻止离开
 
 如果担心编辑中因操作失误，离开了网页，导致心血白费，可阻止离开。
-![attachments/Pasted image 20260104113223.png](attachments/Pasted%20image%2020260104113223.png)
+![attachments/Pasted image 20260104113223.png](/images/InsertLabel/Pasted%20image%2020260104113223.png)
 之后如果网页触发刷新、跳转页面等事件，将提示对话框，点击**取消**阻止离开。
 
 ### 帖子缓存
 
-![attachments/Pasted image 20260104112845.png](attachments/Pasted%20image%2020260104112845.png)
+![attachments/Pasted image 20260104112845.png](/images/InsertLabel/Pasted%20image%2020260104112845.png)
 默认每30秒记录一次内容，一定程度上离开后可找回部分丢失进度，点击确定插入。

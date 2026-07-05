@@ -204,13 +204,16 @@
             });
             console.log('阻止默认局部刷新')
         } else if (listSelector == ENUM.commentListSelector) {
+            // 没有下一页，没必要监听
+            if (currentPage == totalPage || totalPage == ENUM.unknownPage) return;
+
             // 帖子评论页面，当回复评论后，停止加载下一页
             const target = document.querySelector('#post_new');
             // 配置观察项：监听子节点
             const config = { childList: true, characterData: true, subtree: true };;
             // 创建观察器
             const observer = new MutationObserver(function (mutations) {
-                if (currentPage < totalPage && totalPage !== ENUM.unknownPage) {
+                if (currentPage < totalPage) {
                     isFailed = true;
                     addPageMarker({ pageNum: currentPage + 1, errorObject: '你刚回复了内容，停止加载下一页' });
                 } else {
@@ -219,6 +222,7 @@
             });
             // 开始监听
             observer.observe(target, config);
+            console.log('开始监听：当评论时，停止下一页加载')
         }
 
     }

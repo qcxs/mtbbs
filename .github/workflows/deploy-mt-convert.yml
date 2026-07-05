@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'mt-convert/**'
+      - 'web/mt-convert/**'
   workflow_dispatch:
 
 permissions:
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mt-convert
+        working-directory: web/mt-convert
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,7 +30,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: mt-convert/package-lock.json
+          cache-dependency-path: web/mt-convert/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -42,6 +42,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./mt-convert/dist
+          publish_dir: ./web/mt-convert/dist
           destination_dir: mt-convert
           keep_files: true
